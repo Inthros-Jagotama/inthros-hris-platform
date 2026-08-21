@@ -28,7 +28,7 @@ func (h *Handler) CreateCompetency(c *gin.Context) {
 	}
 	resp, err := h.service.CreateCompetency(c.Request.Context(), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
@@ -48,7 +48,7 @@ func (h *Handler) ListCompetencies(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListCompetencies(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -62,7 +62,7 @@ func (h *Handler) UpdateCompetency(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateCompetency(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -70,7 +70,7 @@ func (h *Handler) UpdateCompetency(c *gin.Context) {
 
 func (h *Handler) DeleteCompetency(c *gin.Context) {
 	if err := h.service.DeleteCompetency(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -88,7 +88,7 @@ func (h *Handler) CreateCompetenceValue(c *gin.Context) {
 	}
 	resp, err := h.service.CreateCompetenceValue(c.Request.Context(), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
@@ -108,7 +108,7 @@ func (h *Handler) ListCompetenceValues(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListCompetenceValues(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -122,7 +122,7 @@ func (h *Handler) UpdateCompetenceValue(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateCompetenceValue(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -130,7 +130,7 @@ func (h *Handler) UpdateCompetenceValue(c *gin.Context) {
 
 func (h *Handler) DeleteCompetenceValue(c *gin.Context) {
 	if err := h.service.DeleteCompetenceValue(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -148,7 +148,7 @@ func (h *Handler) CreateCompetencyValue(c *gin.Context) {
 	}
 	resp, err := h.service.CreateCompetencyValue(c.Request.Context(), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
@@ -168,7 +168,7 @@ func (h *Handler) ListCompetencyValues(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListCompetencyValues(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -182,7 +182,7 @@ func (h *Handler) UpdateCompetencyValue(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateCompetencyValue(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -190,7 +190,7 @@ func (h *Handler) UpdateCompetencyValue(c *gin.Context) {
 
 func (h *Handler) DeleteCompetencyValue(c *gin.Context) {
 	if err := h.service.DeleteCompetencyValue(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -208,7 +208,7 @@ func (h *Handler) CreateCompetencyEvent(c *gin.Context) {
 	}
 	resp, err := h.service.CreateCompetencyEvent(c.Request.Context(), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
@@ -228,7 +228,7 @@ func (h *Handler) ListCompetencyEvents(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListCompetencyEvents(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -242,7 +242,7 @@ func (h *Handler) UpdateCompetencyEvent(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateCompetencyEvent(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -250,7 +250,7 @@ func (h *Handler) UpdateCompetencyEvent(c *gin.Context) {
 
 func (h *Handler) DeleteCompetencyEvent(c *gin.Context) {
 	if err := h.service.DeleteCompetencyEvent(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -268,7 +268,7 @@ func (h *Handler) CreateCompetencyEventTarget(c *gin.Context) {
 	}
 	resp, err := h.service.CreateCompetencyEventTarget(c.Request.Context(), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
@@ -288,7 +288,7 @@ func (h *Handler) ListCompetencyEventTargets(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListCompetencyEventTargets(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -302,7 +302,7 @@ func (h *Handler) UpdateCompetencyEventTarget(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateCompetencyEventTarget(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -310,7 +310,7 @@ func (h *Handler) UpdateCompetencyEventTarget(c *gin.Context) {
 
 func (h *Handler) DeleteCompetencyEventTarget(c *gin.Context) {
 	if err := h.service.DeleteCompetencyEventTarget(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -328,7 +328,7 @@ func (h *Handler) CreateCompetencyScore(c *gin.Context) {
 	}
 	resp, err := h.service.CreateCompetencyScore(c.Request.Context(), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
@@ -348,7 +348,7 @@ func (h *Handler) ListCompetencyScores(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListCompetencyScores(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -362,7 +362,7 @@ func (h *Handler) UpdateCompetencyScore(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateCompetencyScore(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -370,7 +370,7 @@ func (h *Handler) UpdateCompetencyScore(c *gin.Context) {
 
 func (h *Handler) DeleteCompetencyScore(c *gin.Context) {
 	if err := h.service.DeleteCompetencyScore(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -388,7 +388,7 @@ func (h *Handler) CreateCompetencyScoreDetail(c *gin.Context) {
 	}
 	resp, err := h.service.CreateCompetencyScoreDetail(c.Request.Context(), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
@@ -408,7 +408,7 @@ func (h *Handler) ListCompetencyScoreDetails(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListCompetencyScoreDetails(c.Request.Context(), c.Param("id"), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -422,7 +422,7 @@ func (h *Handler) UpdateCompetencyScoreDetail(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateCompetencyScoreDetail(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -430,7 +430,7 @@ func (h *Handler) UpdateCompetencyScoreDetail(c *gin.Context) {
 
 func (h *Handler) DeleteCompetencyScoreDetail(c *gin.Context) {
 	if err := h.service.DeleteCompetencyScoreDetail(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")

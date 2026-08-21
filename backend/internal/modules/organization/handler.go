@@ -58,7 +58,7 @@ func (h *Handler) List(c *gin.Context) {
 	if c.Query("tree") == "true" {
 		tree, err := h.service.GetTree(c.Request.Context(), summaryID)
 		if err != nil {
-			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+			httputil.InternalError(c, err.Error())
 			return
 		}
 		httputil.SuccessJSON(c, tree)
@@ -68,7 +68,7 @@ func (h *Handler) List(c *gin.Context) {
 	// Default: paginated flat list
 	resp, err := h.service.List(c.Request.Context(), page, perPage, summaryID, activeOnly, search)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 
@@ -84,7 +84,7 @@ func (h *Handler) Update(c *gin.Context) {
 
 	resp, err := h.service.Update(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 
@@ -94,7 +94,7 @@ func (h *Handler) Update(c *gin.Context) {
 // DELETE /api/v1/tenant/organizations/:id
 func (h *Handler) Delete(c *gin.Context) {
 	if err := h.service.Delete(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -113,7 +113,7 @@ func (h *Handler) ListHistory(c *gin.Context) {
 
 	resp, err := h.service.GetHistory(c.Request.Context(), orgID, page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 
@@ -133,7 +133,7 @@ func (h *Handler) CreateVersion(c *gin.Context) {
 
 	resp, err := h.service.CreateVersion(c.Request.Context(), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 
@@ -147,7 +147,7 @@ func (h *Handler) ListVersions(c *gin.Context) {
 
 	resp, err := h.service.ListVersions(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 
@@ -172,7 +172,7 @@ func (h *Handler) GetVersion(c *gin.Context) {
 func (h *Handler) DiffVersions(c *gin.Context) {
 	resp, err := h.service.DiffVersions(c.Request.Context(), c.Param("id"), c.Param("targetId"))
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -182,7 +182,7 @@ func (h *Handler) DiffVersions(c *gin.Context) {
 func (h *Handler) RestoreVersion(c *gin.Context) {
 	resp, err := h.service.RestoreVersion(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -201,7 +201,7 @@ func (h *Handler) CloneTree(c *gin.Context) {
 
 	resp, err := h.service.CloneVersion(c.Request.Context(), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 

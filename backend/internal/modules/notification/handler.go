@@ -22,7 +22,7 @@ func NewHandler(service *Service) *Handler {
 func (h *Handler) requireUserID(c *gin.Context) (uuid.UUID, bool) {
 	userID := authctx.GetUserID(c.Request.Context())
 	if userID == nil {
-		httputil.ErrorSimple(c, http.StatusUnauthorized, "unauthorized")
+		httputil.ErrorJSON(c, http.StatusUnauthorized, "UNAUTHORIZED", "error.user_not_authenticated")
 		return uuid.Nil, false
 	}
 	return *userID, true
@@ -49,7 +49,7 @@ func (h *Handler) ListNotifications(c *gin.Context) {
 
 	notifications, total, err := h.service.ListNotifications(c.Request.Context(), userID, isRead, page, perPage, httputil.GetLang(c))
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, gin.H{
@@ -68,7 +68,7 @@ func (h *Handler) GetUnreadCount(c *gin.Context) {
 	}
 	count, err := h.service.GetUnreadCount(c.Request.Context(), userID)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, gin.H{"unread_count": count})
@@ -86,7 +86,7 @@ func (h *Handler) MarkAsRead(c *gin.Context) {
 		return
 	}
 	if err := h.service.MarkAsRead(c.Request.Context(), notificationID, userID); err != nil {
-		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		httputil.BadRequest(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, gin.H{"success": true})
@@ -99,7 +99,7 @@ func (h *Handler) MarkAllAsRead(c *gin.Context) {
 		return
 	}
 	if err := h.service.MarkAllAsRead(c.Request.Context(), userID); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, gin.H{"success": true})

@@ -60,7 +60,7 @@ func (h *Handler) List(c *gin.Context) {
 
 	resp, err := h.service.List(c.Request.Context(), page, perPage, search, status, organizationID)
 	if err != nil {
-			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+			httputil.InternalError(c, err.Error())
 		return
 	}
 
@@ -83,7 +83,7 @@ func (h *Handler) GetByID(c *gin.Context) {
 func (h *Handler) GetGenderStats(c *gin.Context) {
 	resp, err := h.service.GetGenderStats(c.Request.Context())
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -94,7 +94,7 @@ func (h *Handler) GetGenderStats(c *gin.Context) {
 func (h *Handler) GetEmploymentStatusStats(c *gin.Context) {
 	resp, err := h.service.GetEmploymentStatusStats(c.Request.Context())
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -109,7 +109,7 @@ func (h *Handler) Update(c *gin.Context) {
 
 	resp, err := h.service.Update(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+			httputil.InternalError(c, err.Error())
 		return
 	}
 
@@ -119,7 +119,7 @@ func (h *Handler) Update(c *gin.Context) {
 // DELETE /api/v1/tenant/employees/:id
 func (h *Handler) Delete(c *gin.Context) {
 	if err := h.service.Delete(c.Request.Context(), c.Param("id")); err != nil {
-			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+			httputil.InternalError(c, err.Error())
 		return
 	}
 
@@ -206,7 +206,7 @@ func (h *Handler) CreateAddress(c *gin.Context) {
 	}
 	resp, err := h.service.CreateAddress(c.Request.Context(), employeeID, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
@@ -219,7 +219,7 @@ func (h *Handler) UpdateAddress(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateAddress(c.Request.Context(), c.Param("id"), c.Param("addressId"), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -227,7 +227,7 @@ func (h *Handler) UpdateAddress(c *gin.Context) {
 
 func (h *Handler) DeleteAddress(c *gin.Context) {
 	if err := h.service.DeleteAddress(c.Request.Context(), c.Param("id"), c.Param("addressId")); err != nil {
-			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+			httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -245,7 +245,7 @@ func (h *Handler) CreateEmergencyContact(c *gin.Context) {
 	}
 	resp, err := h.service.CreateEmergencyContact(c.Request.Context(), employeeID, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
@@ -258,7 +258,7 @@ func (h *Handler) UpdateEmergencyContact(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateEmergencyContact(c.Request.Context(), c.Param("id"), c.Param("contactId"), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -266,7 +266,7 @@ func (h *Handler) UpdateEmergencyContact(c *gin.Context) {
 
 func (h *Handler) DeleteEmergencyContact(c *gin.Context) {
 	if err := h.service.DeleteEmergencyContact(c.Request.Context(), c.Param("id"), c.Param("contactId")); err != nil {
-			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+			httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -284,7 +284,7 @@ func (h *Handler) CreateFamily(c *gin.Context) {
 	}
 	resp, err := h.service.CreateFamily(c.Request.Context(), employeeID, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
@@ -297,7 +297,7 @@ func (h *Handler) UpdateFamily(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateFamily(c.Request.Context(), c.Param("id"), c.Param("familyId"), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -305,7 +305,7 @@ func (h *Handler) UpdateFamily(c *gin.Context) {
 
 func (h *Handler) DeleteFamily(c *gin.Context) {
 	if err := h.service.DeleteFamily(c.Request.Context(), c.Param("id"), c.Param("familyId")); err != nil {
-			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+			httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -323,7 +323,7 @@ func (h *Handler) CreateEducation(c *gin.Context) {
 	}
 	resp, err := h.service.CreateEducation(c.Request.Context(), employeeID, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
@@ -336,7 +336,7 @@ func (h *Handler) UpdateEducation(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateEducation(c.Request.Context(), c.Param("id"), c.Param("educationId"), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -344,7 +344,7 @@ func (h *Handler) UpdateEducation(c *gin.Context) {
 
 func (h *Handler) DeleteEducation(c *gin.Context) {
 	if err := h.service.DeleteEducation(c.Request.Context(), c.Param("id"), c.Param("educationId")); err != nil {
-			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+			httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -362,7 +362,7 @@ func (h *Handler) CreateExperience(c *gin.Context) {
 	}
 	resp, err := h.service.CreateExperience(c.Request.Context(), employeeID, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
@@ -375,7 +375,7 @@ func (h *Handler) UpdateExperience(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateExperience(c.Request.Context(), c.Param("id"), c.Param("experienceId"), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -383,7 +383,7 @@ func (h *Handler) UpdateExperience(c *gin.Context) {
 
 func (h *Handler) DeleteExperience(c *gin.Context) {
 	if err := h.service.DeleteExperience(c.Request.Context(), c.Param("id"), c.Param("experienceId")); err != nil {
-			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+			httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -401,7 +401,7 @@ func (h *Handler) CreateDocument(c *gin.Context) {
 	}
 	resp, err := h.service.CreateDocument(c.Request.Context(), employeeID, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
@@ -512,7 +512,7 @@ func (h *Handler) UpdateDocumentFile(c *gin.Context) {
 		req.Note = note
 		resp, err := h.service.UpdateDocument(c.Request.Context(), employeeID, documentID, req)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+			httputil.InternalError(c, err.Error())
 			return
 		}
 		httputil.SuccessJSON(c, resp)
@@ -564,7 +564,7 @@ func (h *Handler) UpdateDocument(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateDocument(c.Request.Context(), c.Param("id"), c.Param("documentId"), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -572,7 +572,7 @@ func (h *Handler) UpdateDocument(c *gin.Context) {
 
 func (h *Handler) DeleteDocument(c *gin.Context) {
 	if err := h.service.DeleteDocument(c.Request.Context(), c.Param("id"), c.Param("documentId")); err != nil {
-			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+			httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -590,7 +590,7 @@ func (h *Handler) CreateInsurance(c *gin.Context) {
 	}
 	resp, err := h.service.CreateInsurance(c.Request.Context(), employeeID, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
@@ -603,7 +603,7 @@ func (h *Handler) UpdateInsurance(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateInsurance(c.Request.Context(), c.Param("id"), c.Param("insuranceId"), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -611,7 +611,7 @@ func (h *Handler) UpdateInsurance(c *gin.Context) {
 
 func (h *Handler) DeleteInsurance(c *gin.Context) {
 	if err := h.service.DeleteInsurance(c.Request.Context(), c.Param("id"), c.Param("insuranceId")); err != nil {
-			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+			httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -629,7 +629,7 @@ func (h *Handler) CreateBank(c *gin.Context) {
 	}
 	resp, err := h.service.CreateBank(c.Request.Context(), employeeID, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
@@ -642,7 +642,7 @@ func (h *Handler) UpdateBank(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateBank(c.Request.Context(), c.Param("id"), c.Param("bankId"), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -650,7 +650,7 @@ func (h *Handler) UpdateBank(c *gin.Context) {
 
 func (h *Handler) DeleteBank(c *gin.Context) {
 	if err := h.service.DeleteBank(c.Request.Context(), c.Param("id"), c.Param("bankId")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -668,7 +668,7 @@ func (h *Handler) CreateEmployment(c *gin.Context) {
 	}
 	resp, err := h.service.CreateEmployment(c.Request.Context(), employeeID, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
@@ -681,7 +681,7 @@ func (h *Handler) UpdateEmployment(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateEmployment(c.Request.Context(), c.Param("id"), c.Param("employmentId"), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": err.Error()})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -689,7 +689,7 @@ func (h *Handler) UpdateEmployment(c *gin.Context) {
 
 func (h *Handler) DeleteEmployment(c *gin.Context) {
 	if err := h.service.DeleteEmployment(c.Request.Context(), c.Param("id"), c.Param("employmentId")); err != nil {
-			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+			httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -723,7 +723,7 @@ func (h *Handler) SetSensitiveFieldEnabled(c *gin.Context) {
 		return
 	}
 	if err := h.service.SetSensitiveFieldEnabled(c.Request.Context(), fieldKey, req.IsEncryptionEnabled); err != nil {
-		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		httputil.BadRequest(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, gin.H{"field_key": fieldKey, "is_encryption_enabled": req.IsEncryptionEnabled})

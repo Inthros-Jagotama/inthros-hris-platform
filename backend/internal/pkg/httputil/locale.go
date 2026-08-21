@@ -547,6 +547,14 @@ var localeMessages = map[string]map[Lang]string{
 		LangEN: "Leave request deleted",
 		LangID: "Permohonan cuti berhasil dihapus",
 	},
+	"leave.calendar_params_required": {
+		LangEN: "employee_id, from, and to are required",
+		LangID: "employee_id, from, dan to wajib diisi",
+	},
+	"leave.report_params_required": {
+		LangEN: "from and to are required",
+		LangID: "from dan to wajib diisi",
+	},
 
 	"training.category.deleted": {
 		LangEN: "Training category deleted",
@@ -666,6 +674,14 @@ var localeMessages = map[string]map[Lang]string{
 	"training.session_id_required": {
 		LangEN: "session_id is required",
 		LangID: "session_id wajib diisi",
+	},
+	"training.employee_id_required": {
+		LangEN: "employee_id is required",
+		LangID: "employee_id wajib diisi",
+	},
+	"training.attendance_items_required": {
+		LangEN: "attendance items are required",
+		LangID: "data kehadiran wajib diisi",
 	},
 	"attendance.query_params_required": {
 		LangEN: "employee_id and work_date query parameters are required",

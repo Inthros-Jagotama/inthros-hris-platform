@@ -64,7 +64,7 @@ func (h *Handler) CreateAccount(c *gin.Context) {
 	}
 	resp, err := h.service.CreateAccount(c.Request.Context(), c.Param("employeeId"), req.Email)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		httputil.BadRequest(c, err.Error())
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
@@ -96,7 +96,7 @@ func (h *Handler) GetMyAccount(c *gin.Context) {
 func (h *Handler) ResendSetupEmail(c *gin.Context) {
 	resp, err := h.service.ResendSetupEmail(c.Request.Context(), c.Param("employeeId"))
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		httputil.BadRequest(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -120,7 +120,7 @@ func (h *Handler) SetPassword(c *gin.Context) {
 	}
 	resp, err := h.service.SetPassword(ctx, req.Token, req.NewPassword)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		httputil.BadRequest(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)

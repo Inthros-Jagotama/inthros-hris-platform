@@ -33,7 +33,7 @@ func (h *Handler) UpsertCompanySetting(c *gin.Context) {
 	}
 	resp, err := h.service.UpsertCompanySetting(c.Request.Context(), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -70,7 +70,7 @@ func (h *Handler) CreateShift(c *gin.Context) {
 	}
 	resp, err := h.service.CreateShift(c.Request.Context(), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
@@ -90,7 +90,7 @@ func (h *Handler) ListShifts(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListShifts(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -103,7 +103,7 @@ func (h *Handler) UpdateShift(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateShift(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -111,7 +111,7 @@ func (h *Handler) UpdateShift(c *gin.Context) {
 
 func (h *Handler) DeleteShift(c *gin.Context) {
 	if err := h.service.DeleteShift(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -128,7 +128,7 @@ func (h *Handler) CreateEmployeeShift(c *gin.Context) {
 	}
 	resp, err := h.service.CreateEmployeeShift(c.Request.Context(), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
@@ -149,7 +149,7 @@ func (h *Handler) ListEmployeeShifts(c *gin.Context) {
 	employeeID := c.Query("employee_id")
 	resp, err := h.service.ListEmployeeShifts(c.Request.Context(), &employeeID, page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -162,7 +162,7 @@ func (h *Handler) UpdateEmployeeShift(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateEmployeeShift(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -170,7 +170,7 @@ func (h *Handler) UpdateEmployeeShift(c *gin.Context) {
 
 func (h *Handler) DeleteEmployeeShift(c *gin.Context) {
 	if err := h.service.DeleteEmployeeShift(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -187,7 +187,7 @@ func (h *Handler) CreateLocation(c *gin.Context) {
 	}
 	resp, err := h.service.CreateLocation(c.Request.Context(), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
@@ -207,7 +207,7 @@ func (h *Handler) ListLocations(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListLocations(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -220,7 +220,7 @@ func (h *Handler) UpdateLocation(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateLocation(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -228,7 +228,7 @@ func (h *Handler) UpdateLocation(c *gin.Context) {
 
 func (h *Handler) DeleteLocation(c *gin.Context) {
 	if err := h.service.DeleteLocation(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -245,7 +245,7 @@ func (h *Handler) CreateEvent(c *gin.Context) {
 	}
 	resp, err := h.service.CreateEvent(c.Request.Context(), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
@@ -266,7 +266,7 @@ func (h *Handler) ListEvents(c *gin.Context) {
 	employeeID := c.Query("employee_id")
 	resp, err := h.service.ListEvents(c.Request.Context(), &employeeID, page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -297,7 +297,7 @@ func (h *Handler) ListSessions(c *gin.Context) {
 	employeeID := c.Query("employee_id")
 	resp, err := h.service.ListSessions(c.Request.Context(), &employeeID, page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -313,7 +313,7 @@ func (h *Handler) GetEmployeeCalendar(c *gin.Context) {
 	}
 	resp, err := h.service.GetEmployeeCalendar(c.Request.Context(), employeeID, from, to)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -328,7 +328,7 @@ func (h *Handler) GetAttendanceReport(c *gin.Context) {
 	}
 	resp, err := h.service.GetAttendanceReport(c.Request.Context(), from, to)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -344,7 +344,7 @@ func (h *Handler) GetEmployeeSummary(c *gin.Context) {
 	}
 	resp, err := h.service.GetEmployeeSummary(c.Request.Context(), employeeID, from, to)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -365,7 +365,7 @@ func (h *Handler) GetAttendanceStats(c *gin.Context) {
 	}
 	resp, err := h.service.GetAttendanceStats(c.Request.Context(), from, to)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -385,7 +385,7 @@ func (h *Handler) GetOvertimeTrend(c *gin.Context) {
 	}
 	resp, err := h.service.GetOvertimeTrend(c.Request.Context(), from, to)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -408,7 +408,7 @@ func (h *Handler) CreateOvertimeRequest(c *gin.Context) {
 		if approval.EmitRoutingError(c, err) {
 			return
 		}
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
@@ -419,7 +419,7 @@ func (h *Handler) CreateOvertimeRequest(c *gin.Context) {
 func (h *Handler) ListAssignableEmployees(c *gin.Context) {
 	resp, err := h.service.ListAssignableEmployees(c.Request.Context())
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -493,7 +493,7 @@ func writeOvertimeError(c *gin.Context, err error) {
 	case errors.Is(err, ErrOvertimeInvalidActualRange):
 		httputil.BadRequest(c, err.Error())
 	default:
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 	}
 }
 
@@ -512,7 +512,7 @@ func (h *Handler) ListOvertimeRequests(c *gin.Context) {
 	employeeID := c.Query("employee_id")
 	resp, err := h.service.ListOvertimeRequests(c.Request.Context(), &employeeID, page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -535,7 +535,7 @@ func (h *Handler) CreateCorrectionRequest(c *gin.Context) {
 		if approval.EmitRoutingError(c, err) {
 			return
 		}
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
@@ -556,7 +556,7 @@ func (h *Handler) ListCorrectionRequests(c *gin.Context) {
 	employeeID := c.Query("employee_id")
 	resp, err := h.service.ListCorrectionRequests(c.Request.Context(), &employeeID, page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -573,7 +573,7 @@ func (h *Handler) CreateExemptPosition(c *gin.Context) {
 	}
 	resp, err := h.service.CreateExemptPosition(c.Request.Context(), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
@@ -593,7 +593,7 @@ func (h *Handler) ListExemptPositions(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListExemptPositions(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -606,7 +606,7 @@ func (h *Handler) UpdateExemptPosition(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateExemptPosition(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -614,7 +614,7 @@ func (h *Handler) UpdateExemptPosition(c *gin.Context) {
 
 func (h *Handler) DeleteExemptPosition(c *gin.Context) {
 	if err := h.service.DeleteExemptPosition(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")

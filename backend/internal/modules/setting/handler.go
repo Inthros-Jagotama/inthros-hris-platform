@@ -35,10 +35,10 @@ func (h *Handler) GetCompanyTimezone(c *gin.Context) {
 	tz, err := h.service.GetCompanyTimezone(c.Request.Context())
 	if err != nil {
 		if errors.Is(err, ErrCompanyNotFound) {
-			httputil.ErrorSimple(c, http.StatusNotFound, err.Error())
+			httputil.NotFound(c, err.Error())
 			return
 		}
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, gin.H{"timezone": tz})
@@ -55,14 +55,14 @@ func (h *Handler) UpdateCompanyTimezone(c *gin.Context) {
 	}
 	if err := h.service.UpdateCompanyTimezone(c.Request.Context(), req.Timezone); err != nil {
 		if errors.Is(err, ErrInvalidCompanyTimezone) {
-			httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+			httputil.BadRequest(c, err.Error())
 			return
 		}
 		if errors.Is(err, ErrCompanyNotFound) {
-			httputil.ErrorSimple(c, http.StatusNotFound, err.Error())
+			httputil.NotFound(c, err.Error())
 			return
 		}
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, gin.H{"timezone": req.Timezone})
@@ -90,7 +90,7 @@ func (h *Handler) ListCompetencies(c *gin.Context) {
 	search := c.DefaultQuery("search", "")
 	resp, err := h.service.ListCompetencies(c.Request.Context(), page, perPage, search)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -98,7 +98,7 @@ func (h *Handler) ListCompetencies(c *gin.Context) {
 func (h *Handler) GetCompetencyByID(c *gin.Context) {
 	resp, err := h.service.GetCompetencyByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -113,14 +113,14 @@ func (h *Handler) UpdateCompetency(c *gin.Context) {
 		if handleDupErr(c, err) {
 			return
 		}
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
 }
 func (h *Handler) DeleteCompetency(c *gin.Context) {
 	if err := h.service.DeleteCompetency(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -135,7 +135,7 @@ func (h *Handler) CreateZone(c *gin.Context) {
 	resp, err := h.service.CreateZone(c.Request.Context(), req)
 	if err != nil {
 		if errors.Is(err, ErrInvalidZoneTimezone) {
-			httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+			httputil.BadRequest(c, err.Error())
 			return
 		}
 		if handleDupErr(c, err) {
@@ -150,7 +150,7 @@ func (h *Handler) ListZones(c *gin.Context) {
 	if c.Query("active_only") == "true" {
 		zones, err := h.service.ListZonesActive(c.Request.Context())
 		if err != nil {
-			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+			httputil.InternalError(c, err.Error())
 			return
 		}
 		httputil.SuccessJSON(c, zones)
@@ -160,7 +160,7 @@ func (h *Handler) ListZones(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListZones(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -168,7 +168,7 @@ func (h *Handler) ListZones(c *gin.Context) {
 func (h *Handler) GetZoneByID(c *gin.Context) {
 	resp, err := h.service.GetZoneByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -181,20 +181,20 @@ func (h *Handler) UpdateZone(c *gin.Context) {
 	resp, err := h.service.UpdateZone(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
 		if errors.Is(err, ErrInvalidZoneTimezone) {
-			httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+			httputil.BadRequest(c, err.Error())
 			return
 		}
 		if handleDupErr(c, err) {
 			return
 		}
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
 }
 func (h *Handler) DeleteZone(c *gin.Context) {
 	if err := h.service.DeleteZone(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -217,7 +217,7 @@ func (h *Handler) ListProvinces(c *gin.Context) {
 	if c.Query("all") == "true" {
 		provinces, err := h.service.ListAllProvinces(c.Request.Context())
 		if err != nil {
-			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+			httputil.InternalError(c, err.Error())
 			return
 		}
 		httputil.SuccessJSON(c, provinces)
@@ -227,7 +227,7 @@ func (h *Handler) ListProvinces(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListProvinces(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -235,7 +235,7 @@ func (h *Handler) ListProvinces(c *gin.Context) {
 func (h *Handler) GetProvinceByID(c *gin.Context) {
 	resp, err := h.service.GetProvinceByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -247,14 +247,14 @@ func (h *Handler) UpdateProvince(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateProvince(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
 }
 func (h *Handler) DeleteProvince(c *gin.Context) {
 	if err := h.service.DeleteProvince(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -277,7 +277,7 @@ func (h *Handler) ListRegencies(c *gin.Context) {
 	if provID := c.Query("province_id"); provID != "" {
 		regencies, err := h.service.ListRegenciesByProvince(c.Request.Context(), provID)
 		if err != nil {
-			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+			httputil.InternalError(c, err.Error())
 			return
 		}
 		httputil.SuccessJSON(c, regencies)
@@ -287,7 +287,7 @@ func (h *Handler) ListRegencies(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListRegencies(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -295,7 +295,7 @@ func (h *Handler) ListRegencies(c *gin.Context) {
 func (h *Handler) GetRegencyByID(c *gin.Context) {
 	resp, err := h.service.GetRegencyByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -307,14 +307,14 @@ func (h *Handler) UpdateRegency(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateRegency(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
 }
 func (h *Handler) DeleteRegency(c *gin.Context) {
 	if err := h.service.DeleteRegency(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -337,7 +337,7 @@ func (h *Handler) ListDistricts(c *gin.Context) {
 	if regID := c.Query("regency_id"); regID != "" {
 		districts, err := h.service.ListDistrictsByRegency(c.Request.Context(), regID)
 		if err != nil {
-			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+			httputil.InternalError(c, err.Error())
 			return
 		}
 		httputil.SuccessJSON(c, districts)
@@ -347,7 +347,7 @@ func (h *Handler) ListDistricts(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListDistricts(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -355,7 +355,7 @@ func (h *Handler) ListDistricts(c *gin.Context) {
 func (h *Handler) GetDistrictByID(c *gin.Context) {
 	resp, err := h.service.GetDistrictByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -367,14 +367,14 @@ func (h *Handler) UpdateDistrict(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateDistrict(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
 }
 func (h *Handler) DeleteDistrict(c *gin.Context) {
 	if err := h.service.DeleteDistrict(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -397,7 +397,7 @@ func (h *Handler) ListVillages(c *gin.Context) {
 	if distID := c.Query("district_id"); distID != "" {
 		villages, err := h.service.ListVillagesByDistrict(c.Request.Context(), distID)
 		if err != nil {
-			httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+			httputil.InternalError(c, err.Error())
 			return
 		}
 		httputil.SuccessJSON(c, villages)
@@ -407,7 +407,7 @@ func (h *Handler) ListVillages(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListVillages(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -415,7 +415,7 @@ func (h *Handler) ListVillages(c *gin.Context) {
 func (h *Handler) GetVillageByID(c *gin.Context) {
 	resp, err := h.service.GetVillageByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -427,14 +427,14 @@ func (h *Handler) UpdateVillage(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateVillage(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
 }
 func (h *Handler) DeleteVillage(c *gin.Context) {
 	if err := h.service.DeleteVillage(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -442,7 +442,7 @@ func (h *Handler) DeleteVillage(c *gin.Context) {
 func (h *Handler) GetVillageDetail(c *gin.Context) {
 	resp, err := h.service.GetVillageDetail(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -479,7 +479,7 @@ func (h *Handler) ListEducations(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListEducations(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -487,7 +487,7 @@ func (h *Handler) ListEducations(c *gin.Context) {
 func (h *Handler) GetEducationByID(c *gin.Context) {
 	resp, err := h.service.GetEducationByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -502,14 +502,14 @@ func (h *Handler) UpdateEducation(c *gin.Context) {
 		if handleDupErr(c, err) {
 			return
 		}
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
 }
 func (h *Handler) DeleteEducation(c *gin.Context) {
 	if err := h.service.DeleteEducation(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -536,7 +536,7 @@ func (h *Handler) ListEducationMajors(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListEducationMajors(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -544,7 +544,7 @@ func (h *Handler) ListEducationMajors(c *gin.Context) {
 func (h *Handler) GetEducationMajorByID(c *gin.Context) {
 	resp, err := h.service.GetEducationMajorByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -559,14 +559,14 @@ func (h *Handler) UpdateEducationMajor(c *gin.Context) {
 		if handleDupErr(c, err) {
 			return
 		}
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
 }
 func (h *Handler) DeleteEducationMajor(c *gin.Context) {
 	if err := h.service.DeleteEducationMajor(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -593,7 +593,7 @@ func (h *Handler) ListReligions(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListReligions(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -601,7 +601,7 @@ func (h *Handler) ListReligions(c *gin.Context) {
 func (h *Handler) GetReligionByID(c *gin.Context) {
 	resp, err := h.service.GetReligionByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -616,14 +616,14 @@ func (h *Handler) UpdateReligion(c *gin.Context) {
 		if handleDupErr(c, err) {
 			return
 		}
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
 }
 func (h *Handler) DeleteReligion(c *gin.Context) {
 	if err := h.service.DeleteReligion(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -650,7 +650,7 @@ func (h *Handler) ListMaritalStatuses(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListMaritalStatuses(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -658,7 +658,7 @@ func (h *Handler) ListMaritalStatuses(c *gin.Context) {
 func (h *Handler) GetMaritalStatusByID(c *gin.Context) {
 	resp, err := h.service.GetMaritalStatusByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -673,14 +673,14 @@ func (h *Handler) UpdateMaritalStatus(c *gin.Context) {
 		if handleDupErr(c, err) {
 			return
 		}
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
 }
 func (h *Handler) DeleteMaritalStatus(c *gin.Context) {
 	if err := h.service.DeleteMaritalStatus(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -707,7 +707,7 @@ func (h *Handler) ListRelationshipTypes(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListRelationshipTypes(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -715,7 +715,7 @@ func (h *Handler) ListRelationshipTypes(c *gin.Context) {
 func (h *Handler) GetRelationshipTypeByID(c *gin.Context) {
 	resp, err := h.service.GetRelationshipTypeByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -730,14 +730,14 @@ func (h *Handler) UpdateRelationshipType(c *gin.Context) {
 		if handleDupErr(c, err) {
 			return
 		}
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
 }
 func (h *Handler) DeleteRelationshipType(c *gin.Context) {
 	if err := h.service.DeleteRelationshipType(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -764,7 +764,7 @@ func (h *Handler) ListEmploymentStatuses(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListEmploymentStatuses(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -772,7 +772,7 @@ func (h *Handler) ListEmploymentStatuses(c *gin.Context) {
 func (h *Handler) GetEmploymentStatusByID(c *gin.Context) {
 	resp, err := h.service.GetEmploymentStatusByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -787,14 +787,14 @@ func (h *Handler) UpdateEmploymentStatus(c *gin.Context) {
 		if handleDupErr(c, err) {
 			return
 		}
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
 }
 func (h *Handler) DeleteEmploymentStatus(c *gin.Context) {
 	if err := h.service.DeleteEmploymentStatus(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -821,7 +821,7 @@ func (h *Handler) ListBanks(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListBanks(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -829,7 +829,7 @@ func (h *Handler) ListBanks(c *gin.Context) {
 func (h *Handler) GetBankByID(c *gin.Context) {
 	resp, err := h.service.GetBankByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -844,14 +844,14 @@ func (h *Handler) UpdateBank(c *gin.Context) {
 		if handleDupErr(c, err) {
 			return
 		}
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
 }
 func (h *Handler) DeleteBank(c *gin.Context) {
 	if err := h.service.DeleteBank(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -879,7 +879,7 @@ func (h *Handler) ListNationalities(c *gin.Context) {
 	search := c.DefaultQuery("search", "")
 	resp, err := h.service.ListNationalities(c.Request.Context(), page, perPage, search)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -887,7 +887,7 @@ func (h *Handler) ListNationalities(c *gin.Context) {
 func (h *Handler) GetNationalityByID(c *gin.Context) {
 	resp, err := h.service.GetNationalityByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -902,14 +902,14 @@ func (h *Handler) UpdateNationality(c *gin.Context) {
 		if handleDupErr(c, err) {
 			return
 		}
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
 }
 func (h *Handler) DeleteNationality(c *gin.Context) {
 	if err := h.service.DeleteNationality(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -936,7 +936,7 @@ func (h *Handler) ListJobFamilies(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListJobFamilies(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -944,7 +944,7 @@ func (h *Handler) ListJobFamilies(c *gin.Context) {
 func (h *Handler) GetJobFamilyByID(c *gin.Context) {
 	resp, err := h.service.GetJobFamilyByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -959,14 +959,14 @@ func (h *Handler) UpdateJobFamily(c *gin.Context) {
 		if handleDupErr(c, err) {
 			return
 		}
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
 }
 func (h *Handler) DeleteJobFamily(c *gin.Context) {
 	if err := h.service.DeleteJobFamily(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -991,7 +991,7 @@ func (h *Handler) ListTERs(c *gin.Context) {
 	search := c.Query("search")
 	resp, err := h.service.ListTERs(c.Request.Context(), page, perPage, search)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -999,7 +999,7 @@ func (h *Handler) ListTERs(c *gin.Context) {
 func (h *Handler) GetTERByID(c *gin.Context) {
 	resp, err := h.service.GetTERByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -1018,7 +1018,7 @@ func (h *Handler) UpdateTER(c *gin.Context) {
 }
 func (h *Handler) DeleteTER(c *gin.Context) {
 	if err := h.service.DeleteTER(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -1043,7 +1043,7 @@ func (h *Handler) ListPTKPs(c *gin.Context) {
 	search := c.Query("search")
 	resp, err := h.service.ListPTKPs(c.Request.Context(), page, perPage, search)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -1051,7 +1051,7 @@ func (h *Handler) ListPTKPs(c *gin.Context) {
 func (h *Handler) GetPTKPByID(c *gin.Context) {
 	resp, err := h.service.GetPTKPByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -1070,7 +1070,7 @@ func (h *Handler) UpdatePTKP(c *gin.Context) {
 }
 func (h *Handler) DeletePTKP(c *gin.Context) {
 	if err := h.service.DeletePTKP(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -1097,7 +1097,7 @@ func (h *Handler) ListGradings(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListGradings(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -1105,7 +1105,7 @@ func (h *Handler) ListGradings(c *gin.Context) {
 func (h *Handler) GetGradingByID(c *gin.Context) {
 	resp, err := h.service.GetGradingByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -1120,14 +1120,14 @@ func (h *Handler) UpdateGrading(c *gin.Context) {
 		if handleDupErr(c, err) {
 			return
 		}
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
 }
 func (h *Handler) DeleteGrading(c *gin.Context) {
 	if err := h.service.DeleteGrading(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -1154,7 +1154,7 @@ func (h *Handler) ListInsurances(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListInsurances(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -1162,7 +1162,7 @@ func (h *Handler) ListInsurances(c *gin.Context) {
 func (h *Handler) GetInsuranceByID(c *gin.Context) {
 	resp, err := h.service.GetInsuranceByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -1177,14 +1177,14 @@ func (h *Handler) UpdateInsurance(c *gin.Context) {
 		if handleDupErr(c, err) {
 			return
 		}
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
 }
 func (h *Handler) DeleteInsurance(c *gin.Context) {
 	if err := h.service.DeleteInsurance(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -1211,7 +1211,7 @@ func (h *Handler) ListCompanyHolidays(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListCompanyHolidays(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -1219,7 +1219,7 @@ func (h *Handler) ListCompanyHolidays(c *gin.Context) {
 func (h *Handler) GetCompanyHolidayByID(c *gin.Context) {
 	resp, err := h.service.GetCompanyHolidayByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -1234,14 +1234,14 @@ func (h *Handler) UpdateCompanyHoliday(c *gin.Context) {
 		if handleDupErr(c, err) {
 			return
 		}
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
 }
 func (h *Handler) DeleteCompanyHoliday(c *gin.Context) {
 	if err := h.service.DeleteCompanyHoliday(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -1268,7 +1268,7 @@ func (h *Handler) ListSalaryGrades(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListSalaryGrades(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -1276,7 +1276,7 @@ func (h *Handler) ListSalaryGrades(c *gin.Context) {
 func (h *Handler) GetSalaryGradeByID(c *gin.Context) {
 	resp, err := h.service.GetSalaryGradeByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -1291,14 +1291,14 @@ func (h *Handler) UpdateSalaryGrade(c *gin.Context) {
 		if handleDupErr(c, err) {
 			return
 		}
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
 }
 func (h *Handler) DeleteSalaryGrade(c *gin.Context) {
 	if err := h.service.DeleteSalaryGrade(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -1340,9 +1340,9 @@ func (h *NumberingHandler) Update(c *gin.Context) {
 	if err != nil {
 		switch err {
 		case numbering.ErrInvalidDocumentType, numbering.ErrInvalidResetPeriod:
-			httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+			httputil.BadRequest(c, err.Error())
 		case numbering.ErrSettingNotFound:
-			httputil.ErrorSimple(c, http.StatusNotFound, err.Error())
+			httputil.NotFound(c, err.Error())
 		default:
 			httputil.InternalError(c, err.Error())
 		}
@@ -1357,9 +1357,9 @@ func (h *NumberingHandler) Preview(c *gin.Context) {
 	if err != nil {
 		switch err {
 		case numbering.ErrInvalidDocumentType:
-			httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+			httputil.BadRequest(c, err.Error())
 		case numbering.ErrSettingNotFound:
-			httputil.ErrorSimple(c, http.StatusNotFound, err.Error())
+			httputil.NotFound(c, err.Error())
 		default:
 			httputil.InternalError(c, err.Error())
 		}

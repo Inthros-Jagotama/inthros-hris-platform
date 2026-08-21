@@ -30,7 +30,7 @@ func (h *Handler) CreateLeaveType(c *gin.Context) {
 	}
 	resp, err := h.svc.CreateLeaveType(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
@@ -40,7 +40,7 @@ func (h *Handler) ListLeaveTypes(c *gin.Context) {
 	page, perPage := parsePagination(c)
 	resp, err := h.svc.ListLeaveTypes(c.Request.Context(), page, perPage)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -54,7 +54,7 @@ func (h *Handler) GetLeaveTypeByID(c *gin.Context) {
 			httputil.NotFound(c, "")
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
@@ -72,7 +72,7 @@ func (h *Handler) UpdateLeaveType(c *gin.Context) {
 			httputil.NotFound(c, "")
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
@@ -81,7 +81,7 @@ func (h *Handler) UpdateLeaveType(c *gin.Context) {
 func (h *Handler) DeleteLeaveType(c *gin.Context) {
 	id := c.Param("id")
 	if err := h.svc.DeleteLeaveType(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -98,7 +98,7 @@ func (h *Handler) CreateAccrualPolicy(c *gin.Context) {
 	}
 	resp, err := h.svc.CreateAccrualPolicy(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
@@ -113,7 +113,7 @@ func (h *Handler) ListAccrualPolicies(c *gin.Context) {
 	}
 	resp, err := h.svc.ListAccrualPolicies(c.Request.Context(), lTypePtr, page, perPage)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -127,7 +127,7 @@ func (h *Handler) GetAccrualPolicyByID(c *gin.Context) {
 			httputil.NotFound(c, "")
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
@@ -141,7 +141,7 @@ func (h *Handler) UpdateAccrualPolicy(c *gin.Context) {
 	}
 	resp, err := h.svc.UpdateAccrualPolicy(c.Request.Context(), id, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
@@ -150,7 +150,7 @@ func (h *Handler) UpdateAccrualPolicy(c *gin.Context) {
 func (h *Handler) DeleteAccrualPolicy(c *gin.Context) {
 	id := c.Param("id")
 	if err := h.svc.DeleteAccrualPolicy(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -167,7 +167,7 @@ func (h *Handler) CreateLeaveReason(c *gin.Context) {
 	}
 	resp, err := h.svc.CreateLeaveReason(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
@@ -176,7 +176,7 @@ func (h *Handler) CreateLeaveReason(c *gin.Context) {
 func (h *Handler) ListLeaveReasons(c *gin.Context) {
 	reasons, err := h.svc.ListLeaveReasons(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": reasons})
@@ -190,7 +190,7 @@ func (h *Handler) GetLeaveReasonByID(c *gin.Context) {
 			httputil.NotFound(c, "")
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
@@ -204,7 +204,7 @@ func (h *Handler) UpdateLeaveReason(c *gin.Context) {
 	}
 	resp, err := h.svc.UpdateLeaveReason(c.Request.Context(), id, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
@@ -213,7 +213,7 @@ func (h *Handler) UpdateLeaveReason(c *gin.Context) {
 func (h *Handler) DeleteLeaveReason(c *gin.Context) {
 	id := c.Param("id")
 	if err := h.svc.DeleteLeaveReason(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -236,7 +236,7 @@ func (h *Handler) CreateLeaveRequest(c *gin.Context) {
 		if approval.EmitRoutingError(c, err) {
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
@@ -252,7 +252,7 @@ func (h *Handler) ListLeaveRequests(c *gin.Context) {
 	}
 	resp, err := h.svc.ListLeaveRequests(c.Request.Context(), empPtr, &status, page, perPage)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -266,7 +266,7 @@ func (h *Handler) GetLeaveRequestByID(c *gin.Context) {
 			httputil.NotFound(c, "")
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
@@ -280,7 +280,7 @@ func (h *Handler) UpdateLeaveRequestStatus(c *gin.Context) {
 	}
 	resp, err := h.svc.UpdateLeaveRequestStatus(c.Request.Context(), id, req.Status, req.Note)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
@@ -289,7 +289,7 @@ func (h *Handler) UpdateLeaveRequestStatus(c *gin.Context) {
 func (h *Handler) DeleteLeaveRequest(c *gin.Context) {
 	id := c.Param("id")
 	if err := h.svc.DeleteLeaveRequest(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"success": false, "error": gin.H{"code": "NOT_FOUND", "message": err.Error()}})
+		httputil.NotFound(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -303,7 +303,7 @@ func (h *Handler) ListLeaveRequestDetails(c *gin.Context) {
 	leaveRequestID := c.Param("id")
 	details, err := h.svc.ListLeaveRequestDetails(c.Request.Context(), leaveRequestID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": details})
@@ -318,12 +318,12 @@ func (h *Handler) GetEmployeeCalendar(c *gin.Context) {
 	from := c.Query("from")
 	to := c.Query("to")
 	if employeeID == "" || from == "" || to == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": "employee_id, from, and to are required"}})
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", "leave.calendar_params_required")
 		return
 	}
 	resp, err := h.svc.GetEmployeeCalendar(c.Request.Context(), employeeID, from, to)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
@@ -337,12 +337,12 @@ func (h *Handler) GetLeaveUsageReport(c *gin.Context) {
 	from := c.Query("from")
 	to := c.Query("to")
 	if from == "" || to == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": gin.H{"code": "VALIDATION_ERROR", "message": "from and to are required"}})
+		httputil.ErrorJSON(c, http.StatusBadRequest, "VALIDATION_ERROR", "leave.report_params_required")
 		return
 	}
 	resp, err := h.svc.GetLeaveUsageReport(c.Request.Context(), from, to)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
@@ -353,7 +353,7 @@ func (h *Handler) GetLeaveUsageReport(c *gin.Context) {
 func (h *Handler) GetOnLeaveToday(c *gin.Context) {
 	count, err := h.svc.GetOnLeaveToday(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": gin.H{"count": count}})
@@ -372,7 +372,7 @@ func (h *Handler) ListLeaveBalances(c *gin.Context) {
 	}
 	resp, err := h.svc.ListLeaveBalances(c.Request.Context(), empPtr, page, perPage)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -393,7 +393,7 @@ func (h *Handler) GetLeaveBalance(c *gin.Context) {
 			httputil.NotFound(c, "")
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": gin.H{"code": "INTERNAL_ERROR", "message": err.Error()}})
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})

@@ -53,17 +53,17 @@ func actorID(c *gin.Context) string {
 func (h *Handler) handleServiceError(c *gin.Context, err error) {
 	var invalidTypeErr *InvalidDocumentTypeError
 	if errors.As(err, &invalidTypeErr) {
-		httputil.ErrorSimple(c, http.StatusBadRequest, invalidTypeErr.Error())
+		httputil.BadRequest(c, invalidTypeErr.Error())
 		return
 	}
 	var invalidMovementErr *InvalidMovementTypeError
 	if errors.As(err, &invalidMovementErr) {
-		httputil.ErrorSimple(c, http.StatusBadRequest, invalidMovementErr.Error())
+		httputil.BadRequest(c, invalidMovementErr.Error())
 		return
 	}
 	var movementNotAllowedErr *MovementTypeNotAllowedError
 	if errors.As(err, &movementNotAllowedErr) {
-		httputil.ErrorSimple(c, http.StatusBadRequest, movementNotAllowedErr.Error())
+		httputil.BadRequest(c, movementNotAllowedErr.Error())
 		return
 	}
 	var dupCodeErr *DuplicateCodeError

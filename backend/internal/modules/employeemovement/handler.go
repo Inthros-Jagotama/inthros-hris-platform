@@ -382,9 +382,9 @@ func (h *Handler) generateError(c *gin.Context, err error) {
 	case strings.Contains(msg, "document generator is not configured"):
 		httputil.ErrorJSON(c, http.StatusServiceUnavailable, "PDF_ENGINE_NOT_CONFIGURED", "documenttemplate.pdf_engine_unavailable")
 	case strings.Contains(msg, "no active template"):
-		httputil.ErrorSimple(c, http.StatusBadRequest, msg)
+		httputil.BadRequest(c, msg)
 	case strings.Contains(msg, "document can only be generated"):
-		httputil.ErrorSimple(c, http.StatusBadRequest, msg)
+		httputil.BadRequest(c, msg)
 	case strings.Contains(msg, "invalid movement id") || strings.Contains(msg, "invalid contract id") ||
 		strings.Contains(msg, "movement not found") || strings.Contains(msg, "contract not found"):
 		httputil.NotFound(c, msg)

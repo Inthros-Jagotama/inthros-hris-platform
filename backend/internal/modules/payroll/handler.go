@@ -63,7 +63,7 @@ func (h *Handler) ListSalaryComponents(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListSalaryComponents(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -93,7 +93,7 @@ func (h *Handler) UpdateSalaryComponent(c *gin.Context) {
 
 func (h *Handler) DeleteSalaryComponent(c *gin.Context) {
 	if err := h.service.DeleteSalaryComponent(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -108,7 +108,7 @@ func (h *Handler) ListSalaryGradeComponents(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListSalaryGradeComponents(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -117,7 +117,7 @@ func (h *Handler) ListSalaryGradeComponents(c *gin.Context) {
 func (h *Handler) GetSalaryGradeComponentByID(c *gin.Context) {
 	resp, err := h.service.GetSalaryGradeComponentByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -130,7 +130,7 @@ func (h *Handler) CreateSalaryGradeComponent(c *gin.Context) {
 	}
 	resp, err := h.service.CreateSalaryGradeComponent(c.Request.Context(), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		httputil.BadRequest(c, err.Error())
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
@@ -143,7 +143,7 @@ func (h *Handler) UpdateSalaryGradeComponent(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateSalaryGradeComponent(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -151,7 +151,7 @@ func (h *Handler) UpdateSalaryGradeComponent(c *gin.Context) {
 
 func (h *Handler) DeleteSalaryGradeComponent(c *gin.Context) {
 	if err := h.service.DeleteSalaryGradeComponent(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -166,7 +166,7 @@ func (h *Handler) ListSalaryEmployeeComponents(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListSalaryEmployeeComponents(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -175,7 +175,7 @@ func (h *Handler) ListSalaryEmployeeComponents(c *gin.Context) {
 func (h *Handler) GetSalaryEmployeeComponentByID(c *gin.Context) {
 	resp, err := h.service.GetSalaryEmployeeComponentByID(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -188,7 +188,7 @@ func (h *Handler) CreateSalaryEmployeeComponent(c *gin.Context) {
 	}
 	resp, err := h.service.CreateSalaryEmployeeComponent(c.Request.Context(), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusBadRequest, err.Error())
+		httputil.BadRequest(c, err.Error())
 		return
 	}
 	httputil.CreatedJSON(c, resp, "success.created")
@@ -201,7 +201,7 @@ func (h *Handler) UpdateSalaryEmployeeComponent(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateSalaryEmployeeComponent(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -209,7 +209,7 @@ func (h *Handler) UpdateSalaryEmployeeComponent(c *gin.Context) {
 
 func (h *Handler) DeleteSalaryEmployeeComponent(c *gin.Context) {
 	if err := h.service.DeleteSalaryEmployeeComponent(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -237,7 +237,7 @@ func (h *Handler) ListPayrollPeriods(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListPayrollPeriods(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -250,7 +250,7 @@ func (h *Handler) UpdatePayrollPeriod(c *gin.Context) {
 	}
 	resp, err := h.service.UpdatePayrollPeriod(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -287,7 +287,7 @@ func (h *Handler) ListEmployeePayrollProfiles(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListEmployeePayrollProfiles(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -295,7 +295,7 @@ func (h *Handler) ListEmployeePayrollProfiles(c *gin.Context) {
 
 func (h *Handler) DeleteEmployeePayrollProfile(c *gin.Context) {
 	if err := h.service.DeleteEmployeePayrollProfile(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -321,7 +321,7 @@ func (h *Handler) UpdateEmployeeBankProfile(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateEmployeeBankProfile(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -329,7 +329,7 @@ func (h *Handler) UpdateEmployeeBankProfile(c *gin.Context) {
 
 func (h *Handler) DeleteEmployeeBankProfile(c *gin.Context) {
 	if err := h.service.DeleteEmployeeBankProfile(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -368,7 +368,7 @@ func (h *Handler) UpdateEmployeeBpjsProfile(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateEmployeeBpjsProfile(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -376,7 +376,7 @@ func (h *Handler) UpdateEmployeeBpjsProfile(c *gin.Context) {
 
 func (h *Handler) DeleteEmployeeBpjsProfile(c *gin.Context) {
 	if err := h.service.DeleteEmployeeBpjsProfile(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -415,7 +415,7 @@ func (h *Handler) UpdateEmployeeTaxProfile(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateEmployeeTaxProfile(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -423,7 +423,7 @@ func (h *Handler) UpdateEmployeeTaxProfile(c *gin.Context) {
 
 func (h *Handler) DeleteEmployeeTaxProfile(c *gin.Context) {
 	if err := h.service.DeleteEmployeeTaxProfile(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -434,7 +434,7 @@ func (h *Handler) ListEmployeeBankProfiles(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListEmployeeBankProfiles(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -445,7 +445,7 @@ func (h *Handler) ListEmployeeBpjsProfiles(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListEmployeeBpjsProfiles(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -456,7 +456,7 @@ func (h *Handler) ListEmployeeTaxProfiles(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListEmployeeTaxProfiles(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -509,7 +509,7 @@ func (h *Handler) ListBpjsSettings(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListBpjsSettings(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -522,7 +522,7 @@ func (h *Handler) UpdateBpjsSetting(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateBpjsSetting(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -530,7 +530,7 @@ func (h *Handler) UpdateBpjsSetting(c *gin.Context) {
 
 func (h *Handler) DeleteBpjsSetting(c *gin.Context) {
 	if err := h.service.DeleteBpjsSetting(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -556,7 +556,7 @@ func (h *Handler) UpdateBpjsRateComponent(c *gin.Context) {
 	}
 	resp, err := h.service.UpdateBpjsRateComponent(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -564,7 +564,7 @@ func (h *Handler) UpdateBpjsRateComponent(c *gin.Context) {
 
 func (h *Handler) DeleteBpjsRateComponent(c *gin.Context) {
 	if err := h.service.DeleteBpjsRateComponent(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -593,7 +593,7 @@ func (h *Handler) ListBpjsRateComponents(c *gin.Context) {
 	}
 	resp, err := h.service.ListBpjsRateComponentsBySettingID(c.Request.Context(), settingID)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -617,7 +617,7 @@ func (h *Handler) ListPph21Settings(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListPph21Settings(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -630,7 +630,7 @@ func (h *Handler) UpdatePph21Setting(c *gin.Context) {
 	}
 	resp, err := h.service.UpdatePph21Setting(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -638,7 +638,7 @@ func (h *Handler) UpdatePph21Setting(c *gin.Context) {
 
 func (h *Handler) DeletePph21Setting(c *gin.Context) {
 	if err := h.service.DeletePph21Setting(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.DeletedJSON(c, "success.deleted")
@@ -679,7 +679,7 @@ func (h *Handler) ListPph21TaxBrackets(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListPph21TaxBrackets(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -692,7 +692,7 @@ func (h *Handler) UpdatePph21TaxBracket(c *gin.Context) {
 	}
 	resp, err := h.service.UpdatePph21TaxBracket(c.Request.Context(), c.Param("id"), req)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -700,7 +700,7 @@ func (h *Handler) UpdatePph21TaxBracket(c *gin.Context) {
 
 func (h *Handler) DeletePph21TaxBracket(c *gin.Context) {
 	if err := h.service.DeletePph21TaxBracket(c.Request.Context(), c.Param("id")); err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, gin.H{"deleted": true})
@@ -762,7 +762,7 @@ func (h *Handler) ListPayrollRuns(c *gin.Context) {
 	perPage, _ := strconv.Atoi(c.DefaultQuery("per_page", "20"))
 	resp, err := h.service.ListPayrollRuns(c.Request.Context(), page, perPage)
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -787,7 +787,7 @@ func (h *Handler) CalculatePayrollRun(c *gin.Context) {
 			httputil.BadRequest(c, ve.Error())
 			return
 		}
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -798,7 +798,7 @@ func (h *Handler) CalculatePayrollRun(c *gin.Context) {
 func (h *Handler) ListPayrollRunEmployees(c *gin.Context) {
 	resp, err := h.service.ListPayrollRunEmployees(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -809,7 +809,7 @@ func (h *Handler) ListPayrollRunEmployees(c *gin.Context) {
 func (h *Handler) ListPayrollRunItems(c *gin.Context) {
 	resp, err := h.service.ListPayrollRunItems(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
@@ -1034,7 +1034,7 @@ func (h *Handler) UpdatePayrollRunStatus(c *gin.Context) {
 		if approval.EmitRoutingError(c, err) {
 			return
 		}
-		httputil.ErrorSimple(c, http.StatusInternalServerError, err.Error())
+		httputil.InternalError(c, err.Error())
 		return
 	}
 	httputil.SuccessJSON(c, resp)
