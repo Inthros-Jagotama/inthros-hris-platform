@@ -130,21 +130,19 @@
             :placeholder="t('common.select')"
           />
         </FormRow>
-        <div class="grid grid-cols-2 gap-3">
-          <FormRow :label="t('succession_plans.readiness_level')" required :errors="errors?.readiness_level">
-            <Select
-              v-model="form.readiness_level"
-              :options="readinessOptions"
-              optionLabel="label"
-              optionValue="value"
-              class="w-full !text-sm"
-              :placeholder="t('common.select')"
-            />
-          </FormRow>
-          <FormRow :label="t('succession_plans.priority_order')" :errors="errors?.priority_order">
-            <InputNumber v-model="form.priority_order" :min="1" :useGrouping="false" class="w-full" />
-          </FormRow>
-        </div>
+        <FormRow :label="t('succession_plans.readiness_level')" required :errors="errors?.readiness_level">
+          <Select
+            v-model="form.readiness_level"
+            :options="readinessOptions"
+            optionLabel="label"
+            optionValue="value"
+            class="w-full !text-sm"
+            :placeholder="t('common.select')"
+          />
+        </FormRow>
+        <FormRow :label="t('succession_plans.priority_order')" :errors="errors?.priority_order">
+          <InputNumber v-model="form.priority_order" :min="1" :useGrouping="false" class="w-full" />
+        </FormRow>
         <FormRow :label="t('succession_plans.target_date')" :errors="errors?.target_date">
           <DatePicker v-model="form.target_date" dateFormat="yy-mm-dd" :placeholder="t('common.select_date')" class="w-full" showIcon />
         </FormRow>
