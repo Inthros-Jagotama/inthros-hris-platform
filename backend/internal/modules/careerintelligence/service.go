@@ -37,12 +37,57 @@ type Notifier interface {
 	Notify(ctx context.Context, recipientUserID uuid.UUID, notifType string, params []string, referenceType string, referenceID uuid.UUID) error
 }
 
+// TrainingProvider membaca data training read-only dari modul Training —
+// careerintelligence tidak pernah menulis ke tabel training_* (Career
+// Intelligence Training Enhancement plan, docs/career-intelligence-training-enhancement-plan.md).
+// Shape-nya sengaja pakai tipe lokal (bukan import training package) supaya
+// careerintelligence tidak coupled ke training's internal types.
+type TrainingProvider interface {
+	GetTrainingSummary(ctx context.Context, employeeID string) (*TrainingSummary, error)
+	GetTrainingHistory(ctx context.Context, employeeID string) ([]TrainingHistoryItem, error)
+	ListCoursesByCompetencyIDs(ctx context.Context, competencyIDs []uuid.UUID) ([]RecommendedCourse, error)
+}
+
+// TrainingSummary mirrors training.EmployeeTrainingSummaryResponse's fields
+// (careerintelligence's own copy, decoupled from the training package).
+type TrainingSummary struct {
+	TotalTraining           int
+	Completed               int
+	Failed                  int
+	TrainingHours           float64
+	AverageScore            float64
+	CertificationCount      int
+	CompetencyTrainingCount int
+}
+
+// TrainingHistoryItem mirrors training.TrainingHistoryResponse's fields
+// needed by Career Intelligence.
+type TrainingHistoryItem struct {
+	CourseID         string
+	CourseName       string
+	StartDate        string
+	CompletionStatus string
+	Score            float64
+	CertificateNo    string
+}
+
+// RecommendedCourse mirrors training.CourseCompetencyMatchResponse's fields.
+type RecommendedCourse struct {
+	CourseID     string
+	CourseName   string
+	CompetencyID string
+	TargetLevel  *int
+	IsMandatory  bool
+	IsCertified  bool
+}
+
 type Service struct {
 	repo                *Repository
 	logger              *zap.Logger
 	performanceProvider PerformanceProvider
 	competencyProvider  CompetencyProvider
 	notifier            Notifier
+	trainingProvider    TrainingProvider
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
@@ -53,6 +98,13 @@ func NewService(repo *Repository, logger *zap.Logger) *Service {
 // §9 #7). Must be called before Create* methods for notifications to fire.
 func (s *Service) SetNotifier(n Notifier) {
 	s.notifier = n
+}
+
+// SetTrainingProvider wires the Training data source used by
+// GetEmployeeTrainingProfile (Task 4) and GetTrainingRecommendations
+// (Task 5). Must be called before those methods are used.
+func (s *Service) SetTrainingProvider(p TrainingProvider) {
+	s.trainingProvider = p
 }
 
 // notifyEmployee resolves employeeID's linked user account and sends a

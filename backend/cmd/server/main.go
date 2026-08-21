@@ -498,6 +498,67 @@ func (a competencyEligibilityAdapter) LatestScore(ctx context.Context, employeeI
 	return a.repo.LatestScoreByEmployee(ctx, employeeID)
 }
 
+// trainingProviderAdapter implements careerintelligence.TrainingProvider so
+// Career Intelligence can read training profile/history/course-competency
+// data without importing the training package's own types (docs/career-intelligence-training-enhancement-plan.md).
+type trainingProviderAdapter struct {
+	svc *training.Service
+}
+
+func (a trainingProviderAdapter) GetTrainingSummary(ctx context.Context, employeeID string) (*careerintelligence.TrainingSummary, error) {
+	s, err := a.svc.GetEmployeeTrainingSummary(ctx, employeeID)
+	if err != nil {
+		return nil, err
+	}
+	return &careerintelligence.TrainingSummary{
+		TotalTraining:           s.TotalTraining,
+		Completed:               s.Completed,
+		Failed:                  s.Failed,
+		TrainingHours:           s.TrainingHours,
+		AverageScore:            s.AverageScore,
+		CertificationCount:      s.CertificationCount,
+		CompetencyTrainingCount: s.CompetencyTrainingCount,
+	}, nil
+}
+
+func (a trainingProviderAdapter) GetTrainingHistory(ctx context.Context, employeeID string) ([]careerintelligence.TrainingHistoryItem, error) {
+	rows, err := a.svc.GetTrainingHistory(ctx, employeeID)
+	if err != nil {
+		return nil, err
+	}
+	items := make([]careerintelligence.TrainingHistoryItem, 0, len(rows))
+	for _, r := range rows {
+		items = append(items, careerintelligence.TrainingHistoryItem{
+			CourseID:         r.CourseID,
+			CourseName:       r.CourseName,
+			StartDate:        r.StartDate,
+			CompletionStatus: r.CompletionStatus,
+			Score:            r.Score,
+			CertificateNo:    r.CertificateNo,
+		})
+	}
+	return items, nil
+}
+
+func (a trainingProviderAdapter) ListCoursesByCompetencyIDs(ctx context.Context, competencyIDs []uuid.UUID) ([]careerintelligence.RecommendedCourse, error) {
+	rows, err := a.svc.ListCoursesByCompetencyIDs(ctx, competencyIDs)
+	if err != nil {
+		return nil, err
+	}
+	courses := make([]careerintelligence.RecommendedCourse, 0, len(rows))
+	for _, r := range rows {
+		courses = append(courses, careerintelligence.RecommendedCourse{
+			CourseID:     r.CourseID,
+			CourseName:   r.CourseName,
+			CompetencyID: r.CompetencyID,
+			TargetLevel:  r.TargetLevel,
+			IsMandatory:  r.IsMandatory,
+			IsCertified:  r.IsCertified,
+		})
+	}
+	return courses, nil
+}
+
 // okrEligibilityAdapter implements employeemovement.OKRProvider so employee
 // movement can read the latest completed OKR evaluation's final score for
 // promotion eligibility (plan §12.10/§12.11 — KPI + OKR + Competency sebagai
@@ -1249,6 +1310,9 @@ func main() {
 	// Notification untuk event talent mapping/succession/interest
 	// (module-career-intelligence-plan.md §9 #7).
 	ciSvc.SetNotifier(notificationSvc)
+	// Career Intelligence Training Enhancement (docs/career-intelligence-training-enhancement-plan.md):
+	// training data flows into Career Intelligence read-only via this adapter.
+	ciSvc.SetTrainingProvider(trainingProviderAdapter{svc: trainingSvc})
 
 	// Construct the recruitment service up front (instead of inside
 	// recruitment.NewModule) so its narrow providers (plan S-1 workforce gap,

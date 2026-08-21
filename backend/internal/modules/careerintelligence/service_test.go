@@ -412,6 +412,26 @@ func (f *fakeNotifier) Notify(_ context.Context, recipientUserID uuid.UUID, noti
 	return nil
 }
 
+// fakeTrainingProvider implements TrainingProvider for tests.
+type fakeTrainingProvider struct {
+	summary                            *TrainingSummary
+	history                            []TrainingHistoryItem
+	courses                            []RecommendedCourse
+	summaryErr, historyErr, coursesErr error
+}
+
+func (f *fakeTrainingProvider) GetTrainingSummary(_ context.Context, _ string) (*TrainingSummary, error) {
+	return f.summary, f.summaryErr
+}
+
+func (f *fakeTrainingProvider) GetTrainingHistory(_ context.Context, _ string) ([]TrainingHistoryItem, error) {
+	return f.history, f.historyErr
+}
+
+func (f *fakeTrainingProvider) ListCoursesByCompetencyIDs(_ context.Context, _ []uuid.UUID) ([]RecommendedCourse, error) {
+	return f.courses, f.coursesErr
+}
+
 // TestService_CreateSuccessionPlan_NotifiesSuccessor verifies the module
 // notification integration (module-career-intelligence-plan.md §9 #7):
 // naming a successor sends a SUCCESSION_PLAN_NAMED notification to their
