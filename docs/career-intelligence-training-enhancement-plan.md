@@ -1,5 +1,13 @@
 # Career Intelligence — Training Enhancement Plan
 
+> ✅ **Status implementasi (2026-08-21): P0 SELESAI, dianggap cukup untuk saat ini.**
+> Dikerjakan via `docs/superpowers/plans/2026-08-21-career-intelligence-training-integration.md` (6 task, semua ter-commit & lulus test):
+> - Employee Training Profile ✅ · Training History for Career ✅ · Training & Competency Gap ✅ · Career Training Recommendation ✅
+> - Endpoint baru: `GET /training/employees/:employeeId/summary`, `GET /training/courses/by-competency`, `GET /career-intelligence/employees/:employeeId/training-profile`, `GET /career-intelligence/employees/:employeeId/training-recommendations` — semua read-only, tanpa migrasi baru.
+> - FE: `GapAnalysis.vue` menampilkan training profile + rekomendasi training per competency gap.
+> - **Belum dikerjakan (keputusan: cukup untuk saat ini, bukan blocker):** Feature 5 (Career Development Plan integration) dan Feature 6/§11/§25 (multi-factor Career Readiness score) — keduanya butuh tabel/entity baru + keputusan produk (bentuk development plan, bobot readiness) yang di luar scope P0. Feature 9/10/12 (Talent Mapping evidence, Succession readiness, Certification eligibility) juga belum disentuh (P1/P2 di §27).
+> - Verifikasi end-to-end di browser belum bisa dilakukan — tenant dev belum punya data competency assessment real.
+
 ## 1. Tujuan
 
 Enhancement ini menambahkan kemampuan **Training & Development** ke dalam **Career Intelligence** tanpa membuat module Intelligence baru.
