@@ -2702,6 +2702,28 @@
     "training_analysis": "Training Analysis",
     "training_analysis_desc": "Completion, cost, and compliance analytics from the Training module."
   },
+  "headcount_planning": {
+    "title": "Headcount Planning",
+    "description": "Plan vs actual headcount per organization, with workforce gap analysis.",
+    "add_plan": "New Plan",
+    "edit_plan": "Edit Plan",
+    "empty_plans": "No headcount plans yet",
+    "period_placeholder": "e.g. 2026-08",
+    "filter_by_organization": "Filter by organization",
+    "period": "Period",
+    "organization": "Organization",
+    "planned_hc": "Planned HC",
+    "actual_hc": "Actual HC",
+    "variance": "Variance",
+    "snapshot_date": "Snapshot Date",
+    "supply": "Supply",
+    "demand": "Demand",
+    "gap": "Gap",
+    "status": "Status",
+    "department_breakdown": "Breakdown by Organization",
+    "confirm_delete_title": "Delete Headcount Plan",
+    "confirm_delete_msg": "Delete this headcount plan? This action cannot be undone."
+  },
   "candidate_search": {
     "title": "Candidate Search",
     "description": "Find candidates for vacant positions under active organization summaries.",

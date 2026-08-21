@@ -2702,6 +2702,28 @@
     "training_analysis": "Analisis Training",
     "training_analysis_desc": "Analitik penyelesaian, biaya, dan kepatuhan dari modul Training."
   },
+  "headcount_planning": {
+    "title": "Perencanaan Headcount",
+    "description": "Rencana vs aktual headcount per organisasi, dengan analisis kesenjangan workforce.",
+    "add_plan": "Rencana Baru",
+    "edit_plan": "Ubah Rencana",
+    "empty_plans": "Belum ada rencana headcount",
+    "period_placeholder": "cth. 2026-08",
+    "filter_by_organization": "Filter berdasarkan organisasi",
+    "period": "Periode",
+    "organization": "Organisasi",
+    "planned_hc": "HC Rencana",
+    "actual_hc": "HC Aktual",
+    "variance": "Selisih",
+    "snapshot_date": "Tanggal Snapshot",
+    "supply": "Supply",
+    "demand": "Demand",
+    "gap": "Gap",
+    "status": "Status",
+    "department_breakdown": "Rincian per Organisasi",
+    "confirm_delete_title": "Hapus Rencana Headcount",
+    "confirm_delete_msg": "Hapus rencana headcount ini? Tindakan ini tidak dapat dibatalkan."
+  },
   "candidate_search": {
     "title": "Pencarian Kandidat",
     "description": "Cari kandidat untuk posisi lowong pada ringkasan organisasi aktif.",

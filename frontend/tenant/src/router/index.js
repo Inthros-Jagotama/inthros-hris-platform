@@ -647,6 +647,13 @@ const routes = [
         component: () => import('@/views/modules/workforce-intelligence/WorkforceIntelligence.vue'),
         meta: { title: 'Workforce Intel', titleKey: 'workforce_intel.title', descKey: 'workforce_intel.description', icon: 'pi pi-chart-bar', module: 'workforce-intelligence' }
       },
+      // Headcount Planning — plan vs actual per organization + gap analysis
+      {
+        path: 'workforce-intelligence/headcount-planning',
+        name: 'HeadcountPlanning',
+        component: () => import('@/views/modules/workforce-intelligence/HeadcountPlanning.vue'),
+        meta: { title: 'Headcount Planning', titleKey: 'headcount_planning.title', descKey: 'headcount_planning.description', icon: 'pi pi-arrows-alt', module: 'workforce-intelligence', backRoute: '/workforce-intelligence', backLabelKey: 'workforce_intel.title', permission: 'workforceintelligence.headcount-planning.view' }
+      },
       // Candidate Search — posisi kosong + kandidat recruitment
       {
         path: 'workforce-intelligence/candidate-search',
