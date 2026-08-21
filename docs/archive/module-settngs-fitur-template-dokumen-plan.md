@@ -1,3 +1,9 @@
+> ✅ **Diarsipkan (2026-08-21)**: fitur ini sudah selesai secara kode — seluruh Phase 1-6 (§21) dan Acceptance Criteria (§22) tercentang `[x]`. 3 checkbox tersisa di Phase 4 ("Template DOCX rendering", "DOCX generation", "Generated document storage") adalah forward-reference basi ke Phase 5 yang sudah selesai, bukan gap nyata.
+>
+> ⚠️ **Sisa kerja — tugas operasional, bukan kode**: `[ ] LibreOffice Headless setup di server produksi` (§21 Phase 4) belum dikonfirmasi. Binary LibreOffice perlu di-install manual di server produksi (lihat §15 untuk auto-detect path per platform + env override `HRIS_STORAGE_LIBREOFFICE_PATH`). Ada mitigasi: engine alternatif pure-Go `docx2pdf` (`storage.pdf_engine = "docx2pdf"`) tersedia tanpa dependency LibreOffice bila setup produksi belum kelar — lihat §15 baris "Dua opsi engine (2026-08-14)". Verifikasi mana yang dipakai di produksi sebelum benar-benar menganggap deployment selesai.
+>
+> ✅ **Diarsipkan sebagai selesai** — item di atas adalah catatan operasional untuk tim infra/deployment, bukan alasan menunda status "selesai" dokumen ini.
+
 # Plan Fitur: Template Dokumen
 
 **Module:** Settings  
@@ -354,7 +360,7 @@ Opsional untuk enhancement: administrator dapat memilih file DOCX draft dan memi
 ### 8.3 Sample Data
 
 ```text
-{{employee.name}}        → Asep Ruswanda
+{{employee.name}}        → John Fieldman
 {{employee.nik}}         → 199001012015011001
 {{employee.position}}    → HR Staff
 {{contract.number}}      → CTR-2026-001

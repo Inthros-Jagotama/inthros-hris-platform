@@ -74,7 +74,7 @@ func TestGeneratorGenerateCreatesPDFAndRecord(t *testing.T) {
 		DocumentType:  DocumentTypeContractAgreement,
 		ReferenceType: "contract",
 		ReferenceID:   refID,
-		Values:        map[string]string{"employee.name": "Asep", "contract.number": "CTR-001"},
+		Values:        map[string]string{"employee.name": "John", "contract.number": "CTR-001"},
 		GeneratedBy:   "user-1",
 	})
 	if err != nil {
@@ -123,7 +123,7 @@ func TestGeneratorGenerateMovementType(t *testing.T) {
 		MovementType:  "promotion",
 		ReferenceType: "movement",
 		ReferenceID:   uuid.NewString(),
-		Values:        map[string]string{"employee.name": "Asep"},
+		Values:        map[string]string{"employee.name": "John"},
 	})
 	if err != nil {
 		t.Fatalf("generate(promotion): %v", err)

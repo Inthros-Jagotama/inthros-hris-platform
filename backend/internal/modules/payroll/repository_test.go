@@ -19,9 +19,9 @@ func TestRepository_CreateSalaryComponent(t *testing.T) {
 	ctx := context.Background()
 
 	sc := &SalaryComponent{
-		Code:           "TEST-001",
-		Name:           "Test Salary Component",
-		ComponentType:  "EARNING",
+		Code:            "TEST-001",
+		Name:            "Test Salary Component",
+		ComponentType:   "EARNING",
 		CalculationType: "FIXED",
 		IsTaxable:       true,
 		DisplayOrder:    100,
@@ -78,12 +78,12 @@ func TestRepository_FindAllSalaryComponents_Pagination(t *testing.T) {
 
 	for i := 0; i < 5; i++ {
 		sc := &SalaryComponent{
-			Code:           fmt.Sprintf("COMP%03d", i+1),
-			Name:           fmt.Sprintf("Component %d", i+1),
-			ComponentType:  "EARNING",
+			Code:            fmt.Sprintf("COMP%03d", i+1),
+			Name:            fmt.Sprintf("Component %d", i+1),
+			ComponentType:   "EARNING",
 			CalculationType: "FIXED",
-			Status:         "ACTIVE",
-			DisplayOrder:   100,
+			Status:          "ACTIVE",
+			DisplayOrder:    100,
 		}
 		repo.CreateSalaryComponent(ctx, sc)
 	}
@@ -646,7 +646,7 @@ func TestRepository_FindActiveEmploymentByEmployeeID(t *testing.T) {
 	repo := NewRepository(dbResolver)
 	ctx := context.Background()
 
-	employee := createTestEmployee(ctx, repo, "EMP001", "Asep")
+	employee := createTestEmployee(ctx, repo, "EMP001", "John")
 	grading := createTestGrading(ctx, repo, "G-1", "Staff")
 	position := createTestPosition(ctx, repo, "Staff HR", &grading.ID)
 	createTestEmployment(ctx, repo, &employee.ID, &position.ID, "2026-01-01")
@@ -743,7 +743,7 @@ func TestRepository_FindSalaryStructureByGradingAndEmployee(t *testing.T) {
 	ctx := context.Background()
 
 	grading := createTestGrading(ctx, repo, "G-1", "Staff")
-	employee := createTestEmployee(ctx, repo, "EMP001", "Asep")
+	employee := createTestEmployee(ctx, repo, "EMP001", "John")
 
 	comp := createTestSalaryComponent(ctx, repo)
 	createTestGradeComponent(ctx, repo, grading.ID, comp.ID, 5000000)
@@ -827,5 +827,3 @@ func TestRepository_DeleteRunEmployeesAndItems(t *testing.T) {
 func float64Ptr(f float64) *float64 {
 	return &f
 }
-
-

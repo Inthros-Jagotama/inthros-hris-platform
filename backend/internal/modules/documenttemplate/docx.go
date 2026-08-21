@@ -125,7 +125,7 @@ func unknownPlaceholders(placeholders []string) []string {
 func sampleData() map[string]string {
 	return map[string]string{
 		"employee.employee_id":       "EMP-2026-001",
-		"employee.name":              "Asep Ruswanda",
+		"employee.name":              "John Fieldman",
 		"employee.nik":               "199001012015011001",
 		"employee.family_id":         "3201010101010001",
 		"employee.mother_name":       "Siti Aminah",
@@ -136,9 +136,9 @@ func sampleData() map[string]string {
 		"employee.nationality_id":    "ID",
 		"employee.passport":          "A1234567",
 		"employee.phone_number":      "081234567890",
-		"employee.email":             "asep@example.com",
-		"employee.linkedin":          "linkedin.com/in/asep",
-		"employee.instagram":         "@asep",
+		"employee.email":             "John@example.com",
+		"employee.linkedin":          "linkedin.com/in/John",
+		"employee.instagram":         "@John",
 		"employee.religion":          "Islam",
 		"employee.marital_status":    "Menikah",
 		"employee.status":            "active",
@@ -224,7 +224,10 @@ func resolveParagraph(p string, values map[string]string) string {
 	js := joined.String()
 
 	// Kumpulkan span {{key}} yang punya nilai di values.
-	type repl struct{ start, end int; value string }
+	type repl struct {
+		start, end int
+		value      string
+	}
 	var repls []repl
 	for _, m := range placeholderRe.FindAllStringSubmatchIndex(js, -1) {
 		val, ok := values[js[m[2]:m[3]]]

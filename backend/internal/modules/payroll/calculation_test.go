@@ -16,7 +16,7 @@ func setupCalcEnv(t *testing.T, repo *Repository, ctx context.Context) (*Grading
 	t.Helper()
 	grading := createTestGrading(ctx, repo, "G-1", "Staff")
 	position := createTestPosition(ctx, repo, "Staff HR", &grading.ID)
-	employee := createTestEmployee(ctx, repo, "EMP001", "Asep")
+	employee := createTestEmployee(ctx, repo, "EMP001", "John")
 	createTestEmployment(ctx, repo, &employee.ID, &position.ID, "2020-01-01")
 	createTestPayrollProfile(ctx, repo, employee.ID, "2020-01-01")
 	return grading, position, employee

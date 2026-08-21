@@ -153,7 +153,7 @@ func TestPayslipHTML(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetPayslipHTML: %v", err)
 	}
-	if !strings.Contains(html, "SLIP GAJI") || !strings.Contains(html, "Asep") {
+	if !strings.Contains(html, "SLIP GAJI") || !strings.Contains(html, "John") {
 		t.Error("HTML payslip missing expected content")
 	}
 	if !strings.Contains(html, "10000000") {

@@ -33,7 +33,7 @@ func TestReports_SummaryDetailBpjsTaxBank(t *testing.T) {
 	if err := repo.UpdateEmployeeBpjsProfile(ctx, bpjsProfile); err != nil {
 		t.Fatalf("update bpjs profile: %v", err)
 	}
-	createTestBankProfile(ctx, repo, employee.ID, bpjsProfile.EmployeePayrollProfileID, "9988776655", "Asep")
+	createTestBankProfile(ctx, repo, employee.ID, bpjsProfile.EmployeePayrollProfileID, "9988776655", "John")
 
 	svc := NewService(repo, zap.NewNop())
 	run := calcRunForPayslip(t, svc, ctx, repo, "RUN-REPORT")

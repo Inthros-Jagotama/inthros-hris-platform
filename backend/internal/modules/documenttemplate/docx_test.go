@@ -45,7 +45,7 @@ func TestResolveDocxVariables(t *testing.T) {
 	}
 	dst := filepath.Join(dir, "dst.docx")
 	values := map[string]string{
-		"employee.name":  "Asep Ruswanda",
+		"employee.name":   "John Fieldman",
 		"company.address": "PT & Co <Jl. Merdeka>",
 	}
 	if err := resolveDocxVariables(src, dst, values); err != nil {
@@ -81,7 +81,7 @@ func TestResolveDocxVariables(t *testing.T) {
 	if found == "" {
 		t.Fatal("document.xml not found in resolved docx")
 	}
-	if !strings.Contains(found, "Asep Ruswanda") {
+	if !strings.Contains(found, "John Fieldman") {
 		t.Fatalf("expected employee.name resolved, got: %s", found)
 	}
 	if !strings.Contains(found, "PT &amp; Co &lt;Jl. Merdeka&gt;") {
@@ -212,12 +212,12 @@ func TestResolveDocxVariablesMixed(t *testing.T) {
 	body := `<w:p><w:r><w:t>Nama: {{employee.name}} | </w:t></w:r>` +
 		`<w:r><w:t>{{contract.num</w:t></w:r><w:r><w:t>ber}} | {{unknown.key}}</w:t></w:r></w:p>`
 	out := resolveDocxXMLText(t, body, map[string]string{
-		"employee.name":  "Asep",
+		"employee.name":   "John",
 		"contract.number": "CTR-1",
 	})
 	// Teks tampil (gabungan semua <w:t>) harus ter-resolve; nilai placeholder
 	// terpecah masuk ke run pertamanya sehingga di XML mentah teks terpisah run.
-	if joined := paragraphJoinedText(out); joined != "Nama: Asep | CTR-1 | {{unknown.key}}" {
+	if joined := paragraphJoinedText(out); joined != "Nama: John | CTR-1 | {{unknown.key}}" {
 		t.Fatalf("expected intact+split resolved, got: %q", joined)
 	}
 	if !strings.Contains(out, "{{unknown.key}}") {
@@ -324,7 +324,7 @@ func TestResolveDocxVariablesToleratesBadCRC(t *testing.T) {
 		t.Fatalf("write src: %v", err)
 	}
 	dst := filepath.Join(dir, "dst.docx")
-	if err := resolveDocxVariables(src, dst, map[string]string{"employee.name": "Asep"}); err != nil {
+	if err := resolveDocxVariables(src, dst, map[string]string{"employee.name": "John"}); err != nil {
 		t.Fatalf("resolve with bad CRC should succeed, got: %v", err)
 	}
 
@@ -353,7 +353,7 @@ func TestResolveDocxVariablesToleratesBadCRC(t *testing.T) {
 		}
 		found = string(buf)
 	}
-	if !strings.Contains(found, "Asep") {
+	if !strings.Contains(found, "John") {
 		t.Fatalf("expected placeholder resolved in output, got: %s", found)
 	}
 }
