@@ -3139,9 +3139,12 @@
   },
   "talent_maps": {
     "title": "Talent Maps",
-    "description": "9-box grid assessment: performance x potential per period.",
-    "add_assessment": "New Assessment",
-    "edit_assessment": "Edit Assessment",
+    "description": "9-box grid assessment: performance x potential per period, auto-computed from Performance Management and Competency scores.",
+    "generate_assessment": "Generate Assessment",
+    "generate": "Generate",
+    "generate_hint": "Performance is taken from the employee's latest completed Performance Management score, and potential from the latest Competency score — banded into LOW/MEDIUM/HIGH using the configured thresholds. No manual score input.",
+    "edit_assessment": "Correct Assessment",
+    "edit_hint": "Manually correct the auto-generated performance/potential band for this assessment (e.g. HR override).",
     "empty_maps": "No assessments for this period",
     "period_placeholder": "e.g. 2026-Q1",
     "filtered_by": "Filtered by {position}",
@@ -3156,7 +3159,13 @@
     "grid_position": "Grid Position",
     "notes": "Notes",
     "confirm_delete_title": "Delete Assessment",
-    "confirm_delete_msg": "Delete this talent assessment? This action cannot be undone."
+    "confirm_delete_msg": "Delete this talent assessment? This action cannot be undone.",
+    "settings_title": "Banding Thresholds",
+    "settings_hint": "Score thresholds (0-100 scale) used to convert Performance Management and Competency scores into LOW/MEDIUM/HIGH when generating assessments.",
+    "settings_band_hint": "Band: score < Low Max → LOW; Low Max ≤ score < High Min → MEDIUM; score ≥ High Min → HIGH.",
+    "low_max": "Low Max",
+    "high_min": "High Min",
+    "low_lt_high_error": "Low Max must be smaller than High Min"
   },
   "career_interests": {
     "title": "Career Interests",

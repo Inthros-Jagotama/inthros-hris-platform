@@ -22,6 +22,51 @@ func (r *Repository) db(ctx context.Context) (*gorm.DB, error) {
 }
 
 // =========================================================================
+// Talent Map Settings (singleton, ambang batas banding skor)
+// =========================================================================
+
+// GetOrCreateTalentMapSettings returns the tenant's singleton row, creating
+// one with defaults (50/80 for both performance & potential) on first read —
+// same auto-create-default-on-read convention as employee_id_format_settings.
+func (r *Repository) GetOrCreateTalentMapSettings(ctx context.Context) (*TalentMapSettings, error) {
+	db, err := r.db(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var s TalentMapSettings
+	err = db.First(&s).Error
+	if err == nil {
+		return &s, nil
+	}
+	if err != gorm.ErrRecordNotFound {
+		return nil, fmt.Errorf("failed to load talent map settings: %w", err)
+	}
+	s = TalentMapSettings{
+		ID:                 uuid.NewString(),
+		PerformanceLowMax:  50,
+		PerformanceHighMin: 80,
+		PotentialLowMax:    50,
+		PotentialHighMin:   80,
+	}
+	if err := db.Create(&s).Error; err != nil {
+		return nil, fmt.Errorf("failed to create default talent map settings: %w", err)
+	}
+	return &s, nil
+}
+
+// UpdateTalentMapSettings persists changes to the singleton row.
+func (r *Repository) UpdateTalentMapSettings(ctx context.Context, s *TalentMapSettings) error {
+	db, err := r.db(ctx)
+	if err != nil {
+		return err
+	}
+	if err := db.Save(s).Error; err != nil {
+		return fmt.Errorf("failed to update talent map settings: %w", err)
+	}
+	return nil
+}
+
+// =========================================================================
 // Talent Map
 // =========================================================================
 

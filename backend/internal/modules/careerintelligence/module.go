@@ -87,6 +87,7 @@ func (m *ciModule) Migrate(db *gorm.DB) error {
 		&CareerPath{},
 		&CareerPathStep{},
 		&CareerSuccessionPlan{},
+		&TalentMapSettings{},
 	)
 }
 

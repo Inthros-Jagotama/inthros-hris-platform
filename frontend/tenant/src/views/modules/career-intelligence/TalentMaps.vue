@@ -11,7 +11,10 @@
         />
         <Button icon="pi pi-refresh" size="small" severity="secondary" outlined v-tooltip.bottom="t('common.refresh')" @click="loadAll" />
       </div>
-      <Button :label="t('talent_maps.add_assessment')" icon="pi pi-plus" size="small" @click="openDialog()" />
+      <div class="flex items-center gap-2">
+        <Button icon="pi pi-cog" size="small" severity="secondary" outlined v-tooltip.bottom="t('talent_maps.settings_title')" @click="openSettings" />
+        <Button :label="t('talent_maps.generate_assessment')" icon="pi pi-bolt" size="small" @click="openGenerateDialog" />
+      </div>
     </div>
 
     <!-- ── Grid 9-box ── -->
@@ -66,7 +69,7 @@
         <Column :header="t('common.actions')" style="width:90px" frozen alignFrozen="right">
           <template #body="{data}">
             <div class="flex items-center justify-end gap-1">
-              <Button icon="pi pi-pencil" size="small" severity="secondary" text v-tooltip.left="t('common.edit')" @click="openDialog(data)" />
+              <Button icon="pi pi-pencil" size="small" severity="secondary" text v-tooltip.left="t('common.edit')" @click="openEditDialog(data)" />
               <Button icon="pi pi-trash" size="small" severity="danger" text v-tooltip.left="t('common.delete')" @click="openDeleteConfirm(data)" />
             </div>
           </template>
@@ -74,59 +77,118 @@
       </DataTable>
     </div>
 
-    <!-- ── Dialog: Tambah / Ubah ── -->
+    <!-- ── Dialog: Generate (otomatis dari Performance + Competency) ── -->
     <Dialog
-      v-model:visible="dialogVisible"
-      :header="editingId ? t('talent_maps.edit_assessment') : t('talent_maps.add_assessment')"
+      v-model:visible="generateDialogVisible"
+      :header="t('talent_maps.generate_assessment')"
       modal
       :style="{ width: '480px' }"
-      @hide="resetForm"
+      @hide="resetGenerateForm"
     >
+      <p class="text-xs text-gray-500 dark:text-gray-400 mb-3 -mt-1">{{ t('talent_maps.generate_hint') }}</p>
       <div class="space-y-3">
-        <FormRow :label="t('talent_maps.employee')" required :errors="errors?.employee_id">
+        <FormRow :label="t('talent_maps.employee')" required :errors="generateErrors?.employee_id">
           <Select
-            v-model="form.employee_id"
+            v-model="generateForm.employee_id"
             :options="employeeOptions"
             optionLabel="label"
             optionValue="value"
             filter
             showClear
-            :disabled="!!editingId"
             class="w-full !text-sm"
             :placeholder="t('common.select')"
           />
         </FormRow>
-        <FormRow :label="t('talent_maps.period')" required :errors="errors?.period">
-          <InputText v-model="form.period" :disabled="!!editingId" :placeholder="t('talent_maps.period_placeholder')" class="w-full !text-sm" />
+        <FormRow :label="t('talent_maps.period')" required :errors="generateErrors?.period">
+          <InputText v-model="generateForm.period" :placeholder="t('talent_maps.period_placeholder')" class="w-full !text-sm" />
         </FormRow>
-        <FormRow :label="t('talent_maps.performance')" required :errors="errors?.performance">
-          <Select
-            v-model="form.performance"
-            :options="levelOptions"
-            optionLabel="label"
-            optionValue="value"
-            class="w-full !text-sm"
-            :placeholder="t('common.select')"
-          />
-        </FormRow>
-        <FormRow :label="t('talent_maps.potential')" required :errors="errors?.potential">
-          <Select
-            v-model="form.potential"
-            :options="levelOptions"
-            optionLabel="label"
-            optionValue="value"
-            class="w-full !text-sm"
-            :placeholder="t('common.select')"
-          />
-        </FormRow>
-        <FormRow :label="t('talent_maps.notes')" :errors="errors?.notes">
-          <TextInput v-model="form.notes" textarea :rows="3" />
+        <FormRow :label="t('talent_maps.notes')" :errors="generateErrors?.notes">
+          <TextInput v-model="generateForm.notes" textarea :rows="2" />
         </FormRow>
       </div>
       <template #footer>
         <div class="flex items-center justify-end gap-2">
-          <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="dialogVisible = false" />
-          <Button :label="t('common.save')" size="small" :loading="saving" :disabled="saving" @click="handleSave" />
+          <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="generateDialogVisible = false" />
+          <Button :label="t('talent_maps.generate')" icon="pi pi-bolt" size="small" :loading="generating" :disabled="generating" @click="handleGenerate" />
+        </div>
+      </template>
+    </Dialog>
+
+    <!-- ── Dialog: Koreksi manual (performance/potential/notes) ── -->
+    <Dialog
+      v-model:visible="editDialogVisible"
+      :header="t('talent_maps.edit_assessment')"
+      modal
+      :style="{ width: '440px' }"
+      @hide="resetEditForm"
+    >
+      <p class="text-xs text-gray-500 dark:text-gray-400 mb-3 -mt-1">{{ t('talent_maps.edit_hint') }}</p>
+      <div class="space-y-3">
+        <FormRow :label="t('talent_maps.performance')" required :errors="editErrors?.performance">
+          <Select
+            v-model="editForm.performance"
+            :options="levelOptions"
+            optionLabel="label"
+            optionValue="value"
+            class="w-full !text-sm"
+            :placeholder="t('common.select')"
+          />
+        </FormRow>
+        <FormRow :label="t('talent_maps.potential')" required :errors="editErrors?.potential">
+          <Select
+            v-model="editForm.potential"
+            :options="levelOptions"
+            optionLabel="label"
+            optionValue="value"
+            class="w-full !text-sm"
+            :placeholder="t('common.select')"
+          />
+        </FormRow>
+        <FormRow :label="t('talent_maps.notes')" :errors="editErrors?.notes">
+          <TextInput v-model="editForm.notes" textarea :rows="3" />
+        </FormRow>
+      </div>
+      <template #footer>
+        <div class="flex items-center justify-end gap-2">
+          <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="editDialogVisible = false" />
+          <Button :label="t('common.save')" size="small" :loading="editSaving" :disabled="editSaving" @click="handleEditSave" />
+        </div>
+      </template>
+    </Dialog>
+
+    <!-- ── Dialog: Pengaturan ambang batas ── -->
+    <Dialog
+      v-model:visible="settingsVisible"
+      :header="t('talent_maps.settings_title')"
+      modal
+      :style="{ width: '460px' }"
+    >
+      <p class="text-xs text-gray-500 dark:text-gray-400 mb-3 -mt-1">{{ t('talent_maps.settings_hint') }}</p>
+      <div class="space-y-3">
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-400">{{ t('talent_maps.performance') }}</p>
+        <div class="grid grid-cols-2 gap-3">
+          <FormRow :label="t('talent_maps.low_max')" :errors="settingsErrors?.performance_low_max">
+            <InputNumber v-model="settingsForm.performance_low_max" :min="0" :max="100" suffix="%" class="w-full" />
+          </FormRow>
+          <FormRow :label="t('talent_maps.high_min')" :errors="settingsErrors?.performance_high_min">
+            <InputNumber v-model="settingsForm.performance_high_min" :min="0" :max="100" suffix="%" class="w-full" />
+          </FormRow>
+        </div>
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mt-2">{{ t('talent_maps.potential') }}</p>
+        <div class="grid grid-cols-2 gap-3">
+          <FormRow :label="t('talent_maps.low_max')" :errors="settingsErrors?.potential_low_max">
+            <InputNumber v-model="settingsForm.potential_low_max" :min="0" :max="100" suffix="%" class="w-full" />
+          </FormRow>
+          <FormRow :label="t('talent_maps.high_min')" :errors="settingsErrors?.potential_high_min">
+            <InputNumber v-model="settingsForm.potential_high_min" :min="0" :max="100" suffix="%" class="w-full" />
+          </FormRow>
+        </div>
+        <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('talent_maps.settings_band_hint') }}</p>
+      </div>
+      <template #footer>
+        <div class="flex items-center justify-end gap-2">
+          <Button :label="t('common.cancel')" severity="secondary" outlined size="small" @click="settingsVisible = false" />
+          <Button :label="t('common.save')" size="small" :loading="settingsSaving" :disabled="settingsSaving" @click="handleSettingsSave" />
         </div>
       </template>
     </Dialog>
@@ -157,6 +219,7 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
+import InputNumber from 'primevue/inputnumber'
 import Select from 'primevue/select'
 import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
@@ -182,12 +245,24 @@ const quadrants = ref(emptyQuadrants())
 const selectedPosition = ref(null)
 const employees = ref([])
 
-// ── Dialog ──
-const dialogVisible = ref(false)
-const saving = ref(false)
+// ── Dialog: generate ──
+const generateDialogVisible = ref(false)
+const generating = ref(false)
+const generateErrors = ref({})
+const generateForm = ref(emptyGenerateForm())
+
+// ── Dialog: edit (koreksi manual) ──
+const editDialogVisible = ref(false)
+const editSaving = ref(false)
 const editingId = ref(null)
-const errors = ref({})
-const form = ref(emptyForm())
+const editErrors = ref({})
+const editForm = ref({ performance: null, potential: null, notes: '' })
+
+// ── Dialog: settings ──
+const settingsVisible = ref(false)
+const settingsSaving = ref(false)
+const settingsErrors = ref({})
+const settingsForm = ref({ performance_low_max: 50, performance_high_min: 80, potential_low_max: 50, potential_high_min: 80 })
 
 // ── Konfirmasi hapus ──
 const deleteTarget = ref(null)
@@ -220,8 +295,8 @@ function emptyQuadrants() {
   return Array.from({ length: 9 }, (_, i) => ({ position: `9-BOX-${i + 1}`, label: '', description: '', count: 0 }))
 }
 
-function emptyForm() {
-  return { employee_id: null, period: period.value, performance: null, potential: null, notes: '' }
+function emptyGenerateForm() {
+  return { employee_id: null, period: period.value, notes: '' }
 }
 
 function employeeName(id) {
@@ -265,74 +340,143 @@ async function loadReferences() {
   employees.value = empRes.data?.data || []
 }
 
-// ── Dialog create/edit ──
-function openDialog(data = null) {
-  errors.value = {}
-  editingId.value = data?.id || null
-  if (data) {
-    form.value = {
-      employee_id: data.employee_id,
-      period: data.period,
-      performance: data.performance,
-      potential: data.potential,
-      notes: data.notes || ''
-    }
-  } else {
-    form.value = emptyForm()
-  }
-  dialogVisible.value = true
+// ── Generate (otomatis) ──
+function openGenerateDialog() {
+  generateErrors.value = {}
+  generateForm.value = emptyGenerateForm()
+  generateDialogVisible.value = true
 }
 
-function resetForm() {
-  form.value = emptyForm()
-  errors.value = {}
-  editingId.value = null
+function resetGenerateForm() {
+  generateForm.value = emptyGenerateForm()
+  generateErrors.value = {}
 }
 
-// ── Simpan ──
-function validateForm() {
+function validateGenerateForm() {
   const e = {}
-  if (!editingId.value && !form.value.employee_id) e.employee_id = t('career_paths.field_required')
-  if (!editingId.value && !form.value.period?.trim()) e.period = t('career_paths.field_required')
-  if (!form.value.performance) e.performance = t('career_paths.field_required')
-  if (!form.value.potential) e.potential = t('career_paths.field_required')
+  if (!generateForm.value.employee_id) e.employee_id = t('career_paths.field_required')
+  if (!generateForm.value.period?.trim()) e.period = t('career_paths.field_required')
   return e
 }
 
-async function handleSave() {
-  errors.value = validateForm()
-  if (Object.keys(errors.value).length > 0) return
-  saving.value = true
+async function handleGenerate() {
+  generateErrors.value = validateGenerateForm()
+  if (Object.keys(generateErrors.value).length > 0) return
+  generating.value = true
   try {
-    if (editingId.value) {
-      const payload = {
-        performance: form.value.performance,
-        potential: form.value.potential,
-        notes: form.value.notes?.trim() || ''
-      }
-      await api.put(`/api/v1/tenant/career-intelligence/talent-maps/${editingId.value}`, payload)
-    } else {
-      const payload = {
-        employee_id: form.value.employee_id,
-        period: form.value.period.trim(),
-        performance: form.value.performance,
-        potential: form.value.potential,
-        notes: form.value.notes?.trim() || undefined
-      }
-      await api.post('/api/v1/tenant/career-intelligence/talent-maps', payload)
+    const payload = {
+      employee_id: generateForm.value.employee_id,
+      period: generateForm.value.period.trim(),
+      notes: generateForm.value.notes?.trim() || undefined
     }
+    await api.post('/api/v1/tenant/career-intelligence/talent-maps/generate', payload)
     toast.add({ severity: 'success', summary: t('message.success'), detail: t('message.saved'), life: 3000 })
-    dialogVisible.value = false
+    generateDialogVisible.value = false
     await loadAll()
   } catch (e) {
     const fieldErrors = getValidationErrors(e)
     if (Object.keys(fieldErrors).length > 0) {
-      errors.value = fieldErrors
+      generateErrors.value = fieldErrors
+    } else {
+      toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 6000 })
+    }
+  } finally {
+    generating.value = false
+  }
+}
+
+// ── Edit (koreksi manual) ──
+function openEditDialog(data) {
+  editErrors.value = {}
+  editingId.value = data.id
+  editForm.value = {
+    performance: data.performance,
+    potential: data.potential,
+    notes: data.notes || ''
+  }
+  editDialogVisible.value = true
+}
+
+function resetEditForm() {
+  editForm.value = { performance: null, potential: null, notes: '' }
+  editErrors.value = {}
+  editingId.value = null
+}
+
+function validateEditForm() {
+  const e = {}
+  if (!editForm.value.performance) e.performance = t('career_paths.field_required')
+  if (!editForm.value.potential) e.potential = t('career_paths.field_required')
+  return e
+}
+
+async function handleEditSave() {
+  editErrors.value = validateEditForm()
+  if (Object.keys(editErrors.value).length > 0) return
+  editSaving.value = true
+  try {
+    const payload = {
+      performance: editForm.value.performance,
+      potential: editForm.value.potential,
+      notes: editForm.value.notes?.trim() || ''
+    }
+    await api.put(`/api/v1/tenant/career-intelligence/talent-maps/${editingId.value}`, payload)
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('message.saved'), life: 3000 })
+    editDialogVisible.value = false
+    await loadAll()
+  } catch (e) {
+    const fieldErrors = getValidationErrors(e)
+    if (Object.keys(fieldErrors).length > 0) {
+      editErrors.value = fieldErrors
     } else {
       toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
     }
   } finally {
-    saving.value = false
+    editSaving.value = false
+  }
+}
+
+// ── Settings ──
+async function openSettings() {
+  settingsErrors.value = {}
+  try {
+    const res = await api.get('/api/v1/tenant/career-intelligence/talent-maps/settings')
+    const s = res.data?.data
+    if (s) settingsForm.value = { ...s }
+  } catch (e) {
+    toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.failed_to_load')), life: 4000 })
+  }
+  settingsVisible.value = true
+}
+
+function validateSettingsForm() {
+  const e = {}
+  if (settingsForm.value.performance_low_max >= settingsForm.value.performance_high_min) {
+    e.performance_high_min = t('talent_maps.low_lt_high_error')
+  }
+  if (settingsForm.value.potential_low_max >= settingsForm.value.potential_high_min) {
+    e.potential_high_min = t('talent_maps.low_lt_high_error')
+  }
+  return e
+}
+
+async function handleSettingsSave() {
+  settingsErrors.value = validateSettingsForm()
+  if (Object.keys(settingsErrors.value).length > 0) return
+  settingsSaving.value = true
+  try {
+    await api.put('/api/v1/tenant/career-intelligence/talent-maps/settings', settingsForm.value)
+    toast.add({ severity: 'success', summary: t('message.success'), detail: t('message.saved'), life: 3000 })
+    settingsVisible.value = false
+  } catch (e) {
+    const fieldErrors = getValidationErrors(e)
+    if (Object.keys(fieldErrors).length > 0) {
+      settingsErrors.value = fieldErrors
+    } else {
+      toast.add({ severity: 'error', summary: t('message.error'), detail: getErrorMessage(e, t('message.operation_failed')), life: 4000 })
+    }
+  } finally {
+    settingsSaving.value = false
   }
 }
 

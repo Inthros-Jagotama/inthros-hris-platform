@@ -1240,6 +1240,12 @@ func main() {
 	ciResolver := careerintelligence.NewTenantDBResolver(dbManager)
 	ciRepo := careerintelligence.NewRepository(ciResolver)
 	ciSvc := careerintelligence.NewService(ciRepo, l.Named("careerintelligence"))
+	// Talent Map auto-generate (no manual performance/potential input) reads
+	// the same final scores as employee movement's promotion eligibility —
+	// reuse the same adapter types (structurally satisfy both narrow
+	// interfaces since the method signatures match).
+	ciSvc.SetPerformanceProvider(performanceEligibilityAdapter{repo: performanceRepo})
+	ciSvc.SetCompetencyProvider(competencyEligibilityAdapter{repo: competencyRepo})
 
 	// Construct the recruitment service up front (instead of inside
 	// recruitment.NewModule) so its narrow providers (plan S-1 workforce gap,

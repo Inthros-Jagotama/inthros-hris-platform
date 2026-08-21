@@ -3139,9 +3139,12 @@
   },
   "talent_maps": {
     "title": "Peta Bakat",
-    "description": "Penilaian grid 9-box: performa x potensi per periode.",
-    "add_assessment": "Penilaian Baru",
-    "edit_assessment": "Ubah Penilaian",
+    "description": "Penilaian grid 9-box: performa x potensi per periode, dihitung otomatis dari skor Performance Management dan Competency.",
+    "generate_assessment": "Generate Penilaian",
+    "generate": "Generate",
+    "generate_hint": "Performa diambil dari skor Performance Management terakhir yang selesai, dan potensi dari skor Competency terakhir — dibanding LOW/MEDIUM/HIGH memakai ambang batas yang dikonfigurasi. Tidak ada input skor manual.",
+    "edit_assessment": "Koreksi Penilaian",
+    "edit_hint": "Koreksi manual hasil banding performa/potensi otomatis untuk penilaian ini (mis. override HR).",
     "empty_maps": "Belum ada penilaian untuk periode ini",
     "period_placeholder": "cth. 2026-Q1",
     "filtered_by": "Difilter berdasarkan {position}",
@@ -3156,7 +3159,13 @@
     "grid_position": "Posisi Grid",
     "notes": "Catatan",
     "confirm_delete_title": "Hapus Penilaian",
-    "confirm_delete_msg": "Hapus penilaian bakat ini? Tindakan ini tidak dapat dibatalkan."
+    "confirm_delete_msg": "Hapus penilaian bakat ini? Tindakan ini tidak dapat dibatalkan.",
+    "settings_title": "Ambang Batas Banding",
+    "settings_hint": "Ambang batas skor (skala 0-100) untuk mengonversi skor Performance Management dan Competency menjadi LOW/MEDIUM/HIGH saat generate penilaian.",
+    "settings_band_hint": "Band: skor < Low Max → LOW; Low Max ≤ skor < High Min → MEDIUM; skor ≥ High Min → HIGH.",
+    "low_max": "Low Max",
+    "high_min": "High Min",
+    "low_lt_high_error": "Low Max harus lebih kecil dari High Min"
   },
   "career_interests": {
     "title": "Minat Karir",

@@ -34,8 +34,47 @@ func respondSuccess(c *gin.Context, data interface{}) {
 }
 
 // =========================================================================
+// Talent Map Settings
+// =========================================================================
+
+func (h *Handler) GetTalentMapSettings(c *gin.Context) {
+	result, err := h.svc.GetTalentMapSettings(c.Request.Context())
+	if err != nil {
+		respondError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	respondSuccess(c, result)
+}
+
+func (h *Handler) UpdateTalentMapSettings(c *gin.Context) {
+	var req UpdateTalentMapSettingsRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	result, err := h.svc.UpdateTalentMapSettings(c.Request.Context(), req)
+	if err != nil {
+		respondError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondSuccess(c, result)
+}
+
+// =========================================================================
 // Talent Maps
 // =========================================================================
+
+func (h *Handler) GenerateTalentMap(c *gin.Context) {
+	var req GenerateTalentMapRequest
+	if !httputil.BindAndValidate(c, &req) {
+		return
+	}
+	result, err := h.svc.GenerateTalentMap(c.Request.Context(), req)
+	if err != nil {
+		respondError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	httputil.CreatedJSON(c, result, "success.created")
+}
 
 func (h *Handler) ListTalentMaps(c *gin.Context) {
 	page, perPage := parsePagination(c)

@@ -60,6 +60,30 @@ type TalentQuadrant struct {
 	Description string `json:"description"`
 }
 
+// GenerateTalentMapRequest membuat talent map otomatis: performance diambil
+// dari skor final Performance Management, potential dari skor Competency
+// terbaru milik employee, lalu dibanding LOW/MEDIUM/HIGH memakai
+// TalentMapSettings tenant. Tidak ada input performance/potential manual.
+type GenerateTalentMapRequest struct {
+	EmployeeID string `json:"employee_id" binding:"required"`
+	Period     string `json:"period" binding:"required,max=7"`
+	Notes      string `json:"notes"`
+}
+
+type TalentMapSettingsResponse struct {
+	PerformanceLowMax  float64 `json:"performance_low_max"`
+	PerformanceHighMin float64 `json:"performance_high_min"`
+	PotentialLowMax    float64 `json:"potential_low_max"`
+	PotentialHighMin   float64 `json:"potential_high_min"`
+}
+
+type UpdateTalentMapSettingsRequest struct {
+	PerformanceLowMax  float64 `json:"performance_low_max" binding:"required,gte=0,lte=100"`
+	PerformanceHighMin float64 `json:"performance_high_min" binding:"required,gte=0,lte=100"`
+	PotentialLowMax    float64 `json:"potential_low_max" binding:"required,gte=0,lte=100"`
+	PotentialHighMin   float64 `json:"potential_high_min" binding:"required,gte=0,lte=100"`
+}
+
 type EmployeeTalentProfileResponse struct {
 	EmployeeID   string                `json:"employee_id"`
 	CurrentMap   *TalentMapResponse    `json:"current_map,omitempty"`

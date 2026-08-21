@@ -16,13 +16,41 @@ const (
 	maxPerPage     = 100
 )
 
+// PerformanceProvider membaca skor final performance evaluation terakhir
+// milik employee (skala 0-100) dari modul Performance Management. Narrow-
+// interface-plus-adapter pattern (sama seperti employeemovement's
+// PerformanceProvider) — careerintelligence tidak menghitung KPI/OKR sendiri.
+type PerformanceProvider interface {
+	LatestFinalScore(ctx context.Context, employeeID uuid.UUID) (float64, bool, error)
+}
+
+// CompetencyProvider membaca skor kompetensi terakhir milik employee (skala
+// 0-100) dari modul Competency.
+type CompetencyProvider interface {
+	LatestScore(ctx context.Context, employeeID uuid.UUID) (float64, bool, error)
+}
+
 type Service struct {
-	repo   *Repository
-	logger *zap.Logger
+	repo                *Repository
+	logger              *zap.Logger
+	performanceProvider PerformanceProvider
+	competencyProvider  CompetencyProvider
 }
 
 func NewService(repo *Repository, logger *zap.Logger) *Service {
 	return &Service{repo: repo, logger: logger}
+}
+
+// SetPerformanceProvider wires the Performance Management score source used
+// by GenerateTalentMap. Must be called before GenerateTalentMap is used.
+func (s *Service) SetPerformanceProvider(p PerformanceProvider) {
+	s.performanceProvider = p
+}
+
+// SetCompetencyProvider wires the Competency score source used by
+// GenerateTalentMap. Must be called before GenerateTalentMap is used.
+func (s *Service) SetCompetencyProvider(p CompetencyProvider) {
+	s.competencyProvider = p
 }
 
 // =========================================================================
@@ -58,8 +86,120 @@ func gridQuadrantLabel(position string) (string, string) {
 }
 
 // =========================================================================
+// Talent Map Settings
+// =========================================================================
+
+func talentMapSettingsToResponse(s *TalentMapSettings) *TalentMapSettingsResponse {
+	return &TalentMapSettingsResponse{
+		PerformanceLowMax:  s.PerformanceLowMax,
+		PerformanceHighMin: s.PerformanceHighMin,
+		PotentialLowMax:    s.PotentialLowMax,
+		PotentialHighMin:   s.PotentialHighMin,
+	}
+}
+
+func (s *Service) GetTalentMapSettings(ctx context.Context) (*TalentMapSettingsResponse, error) {
+	settings, err := s.repo.GetOrCreateTalentMapSettings(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return talentMapSettingsToResponse(settings), nil
+}
+
+func (s *Service) UpdateTalentMapSettings(ctx context.Context, req UpdateTalentMapSettingsRequest) (*TalentMapSettingsResponse, error) {
+	if req.PerformanceLowMax >= req.PerformanceHighMin {
+		return nil, fmt.Errorf("performance_low_max harus lebih kecil dari performance_high_min")
+	}
+	if req.PotentialLowMax >= req.PotentialHighMin {
+		return nil, fmt.Errorf("potential_low_max harus lebih kecil dari potential_high_min")
+	}
+	settings, err := s.repo.GetOrCreateTalentMapSettings(ctx)
+	if err != nil {
+		return nil, err
+	}
+	settings.PerformanceLowMax = req.PerformanceLowMax
+	settings.PerformanceHighMin = req.PerformanceHighMin
+	settings.PotentialLowMax = req.PotentialLowMax
+	settings.PotentialHighMin = req.PotentialHighMin
+	if err := s.repo.UpdateTalentMapSettings(ctx, settings); err != nil {
+		return nil, err
+	}
+	return talentMapSettingsToResponse(settings), nil
+}
+
+// bandScore converts a raw 0-100 score into LOW/MEDIUM/HIGH using the
+// tenant's configured thresholds: score < lowMax => LOW;
+// lowMax <= score < highMin => MEDIUM; score >= highMin => HIGH.
+func bandScore(score, lowMax, highMin float64) string {
+	if score < lowMax {
+		return "LOW"
+	}
+	if score < highMin {
+		return "MEDIUM"
+	}
+	return "HIGH"
+}
+
+// =========================================================================
 // Talent Map
 // =========================================================================
+
+// GenerateTalentMap membuat talent map otomatis dari skor Performance
+// Management (performance) & Competency (potential) milik employee, tanpa
+// input manual. Skor terbaru masing-masing diambil via provider, lalu
+// dibanding LOW/MEDIUM/HIGH memakai TalentMapSettings tenant.
+func (s *Service) GenerateTalentMap(ctx context.Context, req GenerateTalentMapRequest) (*TalentMapResponse, error) {
+	empID, err := uuid.Parse(req.EmployeeID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid employee_id: %w", err)
+	}
+	if s.performanceProvider == nil || s.competencyProvider == nil {
+		return nil, fmt.Errorf("talent map generation belum dikonfigurasi (performance/competency provider)")
+	}
+
+	perfScore, found, err := s.performanceProvider.LatestFinalScore(ctx, empID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read performance score: %w", err)
+	}
+	if !found {
+		return nil, fmt.Errorf("karyawan belum memiliki hasil evaluasi performance yang selesai (COMPLETED/ACTUAL_APPROVED)")
+	}
+
+	potScore, found, err := s.competencyProvider.LatestScore(ctx, empID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read competency score: %w", err)
+	}
+	if !found {
+		return nil, fmt.Errorf("karyawan belum memiliki hasil assessment competency")
+	}
+
+	settings, err := s.repo.GetOrCreateTalentMapSettings(ctx)
+	if err != nil {
+		return nil, err
+	}
+	performance := bandScore(perfScore, settings.PerformanceLowMax, settings.PerformanceHighMin)
+	potential := bandScore(potScore, settings.PotentialLowMax, settings.PotentialHighMin)
+
+	gridPos := computeGridPosition(performance, potential)
+	tm := &CareerTalentMap{
+		EmployeeID:   empID,
+		Period:       req.Period,
+		Performance:  performance,
+		Potential:    potential,
+		GridPosition: gridPos,
+		Notes:        req.Notes,
+		AssessedAt:   time.Now(),
+	}
+	if err := s.repo.CreateTalentMap(ctx, tm); err != nil {
+		return nil, err
+	}
+	s.logger.Info("Talent map generated",
+		zap.String("employee", req.EmployeeID),
+		zap.Float64("performance_score", perfScore),
+		zap.Float64("potential_score", potScore),
+		zap.String("position", gridPos))
+	return talentMapToResponse(tm), nil
+}
 
 func (s *Service) CreateTalentMap(ctx context.Context, req CreateTalentMapRequest) (*TalentMapResponse, error) {
 	empID, err := uuid.Parse(req.EmployeeID)

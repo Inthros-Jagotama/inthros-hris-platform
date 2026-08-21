@@ -64,6 +64,25 @@ func (ci *CareerInterest) BeforeCreate(tx *gorm.DB) error {
 }
 
 // =========================================================================
+// TalentMapSettings — ambang batas skor (0-100) untuk membanding skor
+// Performance Management & Competency menjadi LOW/MEDIUM/HIGH saat generate
+// talent map otomatis. Singleton table (satu baris per tenant, dibuat
+// otomatis oleh repository saat pertama kali dibaca).
+// =========================================================================
+
+type TalentMapSettings struct {
+	ID                  string    `gorm:"column:id;primaryKey" json:"id"`
+	PerformanceLowMax   float64   `gorm:"column:performance_low_max" json:"performance_low_max"`
+	PerformanceHighMin  float64   `gorm:"column:performance_high_min" json:"performance_high_min"`
+	PotentialLowMax     float64   `gorm:"column:potential_low_max" json:"potential_low_max"`
+	PotentialHighMin    float64   `gorm:"column:potential_high_min" json:"potential_high_min"`
+	CreatedAt           time.Time `gorm:"column:created_at" json:"created_at"`
+	UpdatedAt           time.Time `gorm:"column:updated_at" json:"updated_at"`
+}
+
+func (TalentMapSettings) TableName() string { return "career_talentmap_settings" }
+
+// =========================================================================
 // CareerPath — Header jenjang karier (SKEMA TERPADU dengan Employee Movement,
 // migration 086). Satu path berisi deretan CareerPathStep yang diurutkan by
 // sequence. Atribut edge career intelligence (path_type, typical_tenure,
