@@ -123,16 +123,19 @@ type CareerInterestResponse struct {
 // =========================================================================
 
 type CareerPathStepResponse struct {
-	ID                   string  `json:"id"`
-	PositionID           string  `json:"position_id"`
-	PositionName         string  `json:"position_name,omitempty"`
-	Sequence             int     `json:"sequence"`
-	MinimumServiceMonths *int    `json:"minimum_service_months,omitempty"`
-	Requirements         string  `json:"requirements,omitempty"`
-	PathType             string  `json:"path_type,omitempty"`
-	TypicalTenure        *int    `json:"typical_tenure,omitempty"`
-	Competencies         string  `json:"competencies,omitempty"`
-	Certifications       string  `json:"certifications,omitempty"`
+	ID                   string   `json:"id"`
+	PositionID           string   `json:"position_id"`
+	PositionName         string   `json:"position_name,omitempty"`
+	Sequence             int      `json:"sequence"`
+	MinimumServiceMonths *int     `json:"minimum_service_months,omitempty"`
+	Requirements         string   `json:"requirements,omitempty"`
+	MinPerformanceScore  *float64 `json:"min_performance_score,omitempty"`
+	MinCompetencyScore   *float64 `json:"min_competency_score,omitempty"`
+	MinOKRScore          *float64 `json:"min_okr_score,omitempty"`
+	PathType             string   `json:"path_type,omitempty"`
+	TypicalTenure        *int     `json:"typical_tenure,omitempty"`
+	Competencies         string   `json:"competencies,omitempty"`
+	Certifications       string   `json:"certifications,omitempty"`
 }
 
 type CareerPathResponse struct {
@@ -184,10 +187,15 @@ type EligibleEmployeeResponse struct {
 // CreateCareerPathStepRequest satu langkah pada jenjang. Sequence unik per
 // path (divalidasi service), position_id harus merujuk posisi yang ada.
 type CreateCareerPathStepRequest struct {
-	PositionID           string `json:"position_id" binding:"required,uuid"`
-	Sequence             int    `json:"sequence" binding:"required,gte=1"`
-	MinimumServiceMonths *int   `json:"minimum_service_months" binding:"omitempty,gte=0"`
-	Requirements         string `json:"requirements"`
+	PositionID           string   `json:"position_id" binding:"required,uuid"`
+	Sequence             int      `json:"sequence" binding:"required,gte=1"`
+	MinimumServiceMonths *int     `json:"minimum_service_months" binding:"omitempty,gte=0"`
+	Requirements         string   `json:"requirements"`
+	// Ambang batas eligibility promosi (skala 0-100) untuk langkah ini.
+	// Opsional -- kosongkan untuk pakai default global (saat ini 80).
+	MinPerformanceScore *float64 `json:"min_performance_score" binding:"omitempty,gte=0,lte=100"`
+	MinCompetencyScore  *float64 `json:"min_competency_score" binding:"omitempty,gte=0,lte=100"`
+	MinOKRScore         *float64 `json:"min_okr_score" binding:"omitempty,gte=0,lte=100"`
 }
 
 // CreateCareerPathLadderRequest membuat jenjang penuh: nama + daftar langkah

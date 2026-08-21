@@ -369,3 +369,29 @@ func TestComputeTenureMonths(t *testing.T) {
 		})
 	}
 }
+
+// TestEvaluatePromotionRules_PerStepThresholdOverride verifies
+// career_path_requirements (module-career-intelligence-plan.md §9 #6): a
+// per-step threshold (e.g. from career_path_steps.min_performance_score)
+// must be used instead of the global 80.0 default when supplied.
+func TestEvaluatePromotionRules_PerStepThresholdOverride(t *testing.T) {
+	svc := &Service{}
+	perf, comp, okr := 70.0, 70.0, 70.0
+
+	// With global default thresholds (80/80/80), a score of 70 fails all three.
+	rulesDefault := svc.evaluatePromotionRules(24, 24, &perf, &comp, &okr,
+		eligibilityMinPerformanceScore, eligibilityMinCompetencyScore, eligibilityMinOKRScore)
+	for _, r := range rulesDefault {
+		if r.Code != "minimum_service" && r.Met {
+			t.Errorf("expected rule %s to fail against default threshold 80, but it passed", r.Code)
+		}
+	}
+
+	// With a lower per-step override (60/60/60), the same score of 70 passes.
+	rulesOverride := svc.evaluatePromotionRules(24, 24, &perf, &comp, &okr, 60.0, 60.0, 60.0)
+	for _, r := range rulesOverride {
+		if r.Code != "minimum_service" && !r.Met {
+			t.Errorf("expected rule %s to pass against overridden threshold 60, but it failed", r.Code)
+		}
+	}
+}

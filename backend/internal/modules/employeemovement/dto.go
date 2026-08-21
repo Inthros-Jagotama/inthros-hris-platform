@@ -266,6 +266,12 @@ type PromotionEligibilityData struct {
 	NextPositionName     *string                 `json:"next_position_name,omitempty"`
 	NextPositionSeq      *int                    `json:"next_position_sequence,omitempty"`
 	MinimumServiceMonths int                     `json:"minimum_service_months"`
+	// Ambang batas skor eligibility yang benar-benar dipakai untuk promosi
+	// ini -- dari career_path_steps langkah berikutnya jika diset, else
+	// default global (lihat eligibilityMin*Score).
+	MinPerformanceScore  float64                 `json:"min_performance_score"`
+	MinCompetencyScore   float64                 `json:"min_competency_score"`
+	MinOKRScore          float64                 `json:"min_okr_score"`
 	PerformanceScore     *float64                `json:"performance_score,omitempty"`
 	CompetencyScore      *float64                `json:"competency_score,omitempty"`
 	OKRScore             *float64                `json:"okr_score,omitempty"`

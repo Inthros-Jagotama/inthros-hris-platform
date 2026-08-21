@@ -5,7 +5,8 @@
 > 🔀 **Pemisahan transactional vs strategical (2026-08-10):** Career Paths **pindah penuh** dari modul Employee Movement ke module ini — endpoint `/career-intelligence/paths` (ladder-style `name` + `steps[]`), Employee Movement hanya **membaca** `career_paths`/`career_path_steps` untuk promotion eligibility. Lihat log §7.3.
 > ✅ **Update 2026-08-21:** seluruh 5 halaman FE selesai (Career Paths, Succession Plans, Career Interests, Gap Analysis, Talent Maps). Talent Map juga tidak lagi input manual — performance & potential dihitung otomatis dari skor final Performance Management + skor Competency terakhir milik employee (item roadmap §9 no. 8, dulu opsional, sekarang selesai). Lihat log §7.5.
 > ✅ **Update 2026-08-21 (lanjutan):** Gap Analysis backend tidak lagi stub — `GetGapAnalysis` sekarang query data competency real (syarat dari `competency_score_details` milik assessment terakhir target organization, level aktual dari assessment terakhir employee). Keterbatasan: hanya akurat untuk target organization yang sudah pernah di-assess (tidak ada tabel "syarat kompetensi per posisi" independen di skema ini) — target yang belum pernah di-assess mengembalikan error jelas, bukan hasil 0%-gap yang menyesatkan. Lihat log §7.6.
-> ⏳ **Sisa TODO:** (1) integrasi Notification untuk event talent mapping/succession (opsional) · (2) `career_path_requirements` (opsional — eligibility masih hardcode rule di service) · (3) tabel "syarat kompetensi per posisi" independen (opsional — supaya Gap Analysis bisa dipakai untuk posisi yang belum pernah di-assess) — semuanya enhancement opsional, bukan blocker.
+> ✅ **Update 2026-08-21 (lanjutan lagi):** `career_path_requirements` selesai — ambang batas eligibility promosi (performance/competency/OKR, sebelumnya hardcode global `>=80`) sekarang bisa dikonfigurasi **per langkah career path** lewat 3 kolom nullable baru di `career_path_steps` (migration 158). Lihat log §7.7.
+> ⏳ **Sisa TODO:** (1) integrasi Notification untuk event talent mapping/succession (opsional) · (2) tabel "syarat kompetensi per posisi" independen (opsional — supaya Gap Analysis bisa dipakai untuk posisi yang belum pernah di-assess) — keduanya enhancement opsional, bukan blocker.
 
 ---
 
@@ -471,6 +472,25 @@ Setelah ladder-style menjadi satu-satunya bentuk create, dead code edge CI dihap
 
 - `go build ./...` ✅ · `go vet` ✅ · `go test ./internal/modules/careerintelligence/...` — **PASS** ✅.
 
+## 7.7 `career_path_requirements` — ambang batas eligibility per langkah career path (2026-08-21)
+
+**Latar:** `employeemovement`'s promotion/movement eligibility check membanding skor performance/competency/OKR karyawan terhadap threshold `>=80` yang **hardcode global** (`eligibilityMinPerformanceScore`/`eligibilityMinCompetencyScore`/`eligibilityMinOKRScore` di `service.go`) — sama untuk semua posisi/career path, tidak bisa dikonfigurasi per jenjang. Tenure (`minimum_service_months`) sudah bisa di-override per step sejak awal; skor belum.
+
+**Keputusan desain:** tambah 3 kolom nullable ke `career_path_steps` (bukan tabel terpisah — konsisten dengan skema terpadu 086/087 di mana `career_path_steps` sudah jadi tempat gabungan atribut EM+CI per langkah): `min_performance_score`, `min_competency_score`, `min_okr_score` (`DECIMAL(5,2)`, semua opsional). `NULL` = pakai default global; diisi = override untuk promosi ke langkah itu.
+
+**Implementasi:**
+- **Migration 158** (mysql + postgres, up + down): `ALTER TABLE career_path_steps ADD COLUMN min_performance_score/min_competency_score/min_okr_score`.
+- **Model** (`CareerPathStep`, careerintelligence & employeemovement — dua struct terpisah yang memetakan tabel yang sama): tambah 3 field `*float64`.
+- **CI dto/service**: `CreateCareerPathStepRequest`/`CareerPathStepResponse` tambah field (binding `omitempty,gte=0,lte=100`); `buildCareerPathSteps`/`careerPathToResponse` memetakan field baru — sehingga FE `CareerPaths.vue` bisa create/edit/lihat threshold per step lewat endpoint `/career-intelligence/paths` yang sudah ada (tidak ada endpoint baru).
+- **EM service (`GetPromotionEligibility`)**: `findPromotionNextStep` sekarang juga membaca 3 kolom baru dari `nextStep` dan meng-override `promo.Min*Score` (default diisi dari konstanta global sebelum kemungkinan di-override). `evaluatePromotionRules` diberi 3 parameter threshold baru (bukan lagi memakai konstanta langsung), dipanggil dengan `promo.Min*Score` yang sudah final. `movement-eligibility` (`evaluateDefaultRules`) **tidak diubah** — endpoint itu general "boleh pindah?" tanpa konteks target step tertentu, jadi tetap threshold global (scope §9 #6 secara semantik adalah untuk promosi ke posisi spesifik, bukan movement umum).
+- **FE (`CareerPaths.vue`)**: bagian collapsible "Ambang batas eligibility promosi (opsional)" per step di dialog create/edit, 3 `InputNumber` (placeholder "Default (80)"), otomatis expanded saat edit step yang sudah punya override.
+
+**Verifikasi:**
+- `go build ./...` ✅ · `go vet` ✅.
+- `go test ./internal/modules/careerintelligence/...` — **PASS** ✅.
+- `go test ./internal/modules/employeemovement/...` — 15 test gagal (`organizations.code NOT NULL` dll) **diverifikasi pre-existing** via `git stash` diff (list identik dengan/tanpa perubahan ini, hanya durasi run yang beda). Test integrasi `TestGetPromotionEligibility_WithCareerPath` (yang seharusnya menguji jalur baru ini end-to-end) termasuk yang terblokir bug fixture pre-existing tsb, jadi ditambahkan unit test murni `TestEvaluatePromotionRules_PerStepThresholdOverride` (tanpa DB) untuk memverifikasi logika override benar: skor 70 gagal terhadap default 80, lolos terhadap override 60 — **PASS** ✅.
+- `npm run build` (tenant FE) ✅.
+
 ---
 
 # 8. Frontend Plan
@@ -526,7 +546,7 @@ Sebelumnya `performance`/`potential` diinput manual (LOW/MEDIUM/HIGH langsung da
 | 3 | Talent Maps / Interests / Gap Analysis / Succession Plans backend | ✅ | BE |
 | 4 | Halaman FE Talent Maps / Interests / Gap Analysis / Succession Plans | ✅ **SELESAI (2026-08-21)** — semua 4 halaman dibangun | FE |
 | 5 | Gap Analysis FE (form employee + target title, hasil + rekomendasi) | ✅ **SELESAI (2026-08-21)** — `GapAnalysis.vue` | FE |
-| 6 | `career_path_requirements` (rule eligibility terstruktur) | ⏳ opsional | DB/BE |
+| 6 | `career_path_requirements` (rule eligibility terstruktur) | ✅ **SELESAI (2026-08-21)** — migration 158, lihat §7.7 | DB/BE |
 | 7 | Notification untuk event talent mapping / succession / interest | ⏳ opsional | BE/FE |
 | 8 | Integrasi hasil performance/competency ke talent grid (input 9-box otomatis) | ✅ **SELESAI (2026-08-21)** — `GenerateTalentMap` + `TalentMapSettings` (migration 157), lihat §8.5 | BE/FE |
 | 9 | Gap Analysis backend real (bukan stub hardcoded) | ✅ **SELESAI (2026-08-21)** — query `competency_score_details` real, lihat §7.6 | BE |

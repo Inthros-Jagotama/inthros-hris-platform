@@ -219,6 +219,31 @@
                   <InputText v-model="step.requirements" class="w-full !text-sm" :placeholder="t('career_paths.requirements_placeholder')" />
                 </div>
               </div>
+              <!-- Ambang batas eligibility promosi (opsional, override default global 80) -->
+              <div>
+                <button
+                  type="button"
+                  class="flex items-center gap-1 text-xs text-teal-600 dark:text-teal-400 hover:underline"
+                  @click="step._showThresholds = !step._showThresholds"
+                >
+                  <i class="pi" :class="step._showThresholds ? 'pi-chevron-down' : 'pi-chevron-right'"></i>
+                  {{ t('career_paths.eligibility_thresholds') }}
+                </button>
+                <div v-if="step._showThresholds" class="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-2 mt-2">
+                  <div>
+                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('career_paths.min_performance_score') }}</label>
+                    <InputNumber v-model="step.min_performance_score" :min="0" :max="100" :useGrouping="false" inputClass="!text-sm" class="w-full" :placeholder="t('career_paths.threshold_default_placeholder')" />
+                  </div>
+                  <div>
+                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('career_paths.min_competency_score') }}</label>
+                    <InputNumber v-model="step.min_competency_score" :min="0" :max="100" :useGrouping="false" inputClass="!text-sm" class="w-full" :placeholder="t('career_paths.threshold_default_placeholder')" />
+                  </div>
+                  <div>
+                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('career_paths.min_okr_score') }}</label>
+                    <InputNumber v-model="step.min_okr_score" :min="0" :max="100" :useGrouping="false" inputClass="!text-sm" class="w-full" :placeholder="t('career_paths.threshold_default_placeholder')" />
+                  </div>
+                </div>
+              </div>
             </div>
             <div v-if="!form.steps.length" class="text-sm text-gray-400 text-center py-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
               {{ t('career_paths.no_steps') }}
@@ -331,7 +356,15 @@ function emptyForm() {
 }
 
 function emptyStep() {
-  return { position_id: null, minimum_service_months: null, requirements: '' }
+  return {
+    position_id: null,
+    minimum_service_months: null,
+    requirements: '',
+    min_performance_score: null,
+    min_competency_score: null,
+    min_okr_score: null,
+    _showThresholds: false
+  }
 }
 
 function sortedSteps(steps) {
@@ -392,7 +425,11 @@ function openDialog(data = null) {
         ? sortedSteps(data.steps).map(s => ({
             position_id: s.position_id,
             minimum_service_months: s.minimum_service_months ?? null,
-            requirements: s.requirements || ''
+            requirements: s.requirements || '',
+            min_performance_score: s.min_performance_score ?? null,
+            min_competency_score: s.min_competency_score ?? null,
+            min_okr_score: s.min_okr_score ?? null,
+            _showThresholds: s.min_performance_score != null || s.min_competency_score != null || s.min_okr_score != null
           }))
         : [emptyStep()]
     }
@@ -468,7 +505,10 @@ async function handleSave() {
         position_id: step.position_id,
         sequence: idx + 1,
         minimum_service_months: step.minimum_service_months ?? undefined,
-        requirements: step.requirements?.trim() || undefined
+        requirements: step.requirements?.trim() || undefined,
+        min_performance_score: step.min_performance_score ?? undefined,
+        min_competency_score: step.min_competency_score ?? undefined,
+        min_okr_score: step.min_okr_score ?? undefined
       }))
     }
     if (editingId.value) {

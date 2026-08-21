@@ -2208,6 +2208,11 @@
     "generate_doc_requires_approved": "Document can only be generated for approved or executed movements."
   },
   "career_paths": {
+    "eligibility_thresholds": "Promotion eligibility thresholds (optional)",
+    "min_performance_score": "Min. Performance Score",
+    "min_competency_score": "Min. Competency Score",
+    "min_okr_score": "Min. OKR Score",
+    "threshold_default_placeholder": "Default (80)",
     "title": "Career Paths",
     "description": "Configure career ladders and promotion sequences (strategical planning).",
     "path_name": "Career Path",

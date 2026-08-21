@@ -127,6 +127,12 @@ type CareerPathStep struct {
 	Sequence             int       `gorm:"type:int;not null;uniqueIndex:uk_career_path_steps_sequence,priority:2" json:"sequence"`
 	MinimumServiceMonths *int      `gorm:"type:int" json:"minimum_service_months,omitempty"`
 	Requirements         string    `gorm:"type:text" json:"requirements"`
+	// Ambang batas eligibility promosi per langkah (nullable -- NULL berarti
+	// pakai default global employeemovement.eligibilityMin*Score, saat ini
+	// >=80 untuk ketiganya). Dikonsumsi employeemovement.findPromotionNextStep.
+	MinPerformanceScore *float64  `gorm:"type:decimal(5,2)" json:"min_performance_score,omitempty"`
+	MinCompetencyScore  *float64  `gorm:"type:decimal(5,2)" json:"min_competency_score,omitempty"`
+	MinOKRScore         *float64  `gorm:"type:decimal(5,2)" json:"min_okr_score,omitempty"`
 	PathType             string    `gorm:"type:varchar(30)" json:"path_type"`   // CI: PROMOTION / LATERAL / DEMOTION / CROSSFUNCTIONAL
 	TypicalTenure        *int      `gorm:"type:int" json:"typical_tenure,omitempty"` // CI: months
 	Competencies         string    `gorm:"type:text" json:"competencies"`       // CI: JSON list of competency IDs

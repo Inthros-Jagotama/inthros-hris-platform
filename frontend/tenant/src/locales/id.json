@@ -2208,6 +2208,11 @@
     "generate_doc_requires_approved": "Dokumen hanya bisa di-generate untuk movement yang sudah approved atau executed."
   },
   "career_paths": {
+    "eligibility_thresholds": "Ambang batas eligibility promosi (opsional)",
+    "min_performance_score": "Min. Skor Performance",
+    "min_competency_score": "Min. Skor Competency",
+    "min_okr_score": "Min. Skor OKR",
+    "threshold_default_placeholder": "Default (80)",
     "title": "Jenjang Karier",
     "description": "Kelola jalur jenjang karier dan urutan promosi (perencanaan strategis).",
     "path_name": "Jenjang Karier",

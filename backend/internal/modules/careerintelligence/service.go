@@ -536,6 +536,9 @@ func (s *Service) buildCareerPathSteps(ctx context.Context, careerPathID uuid.UU
 			Sequence:             rs.Sequence,
 			MinimumServiceMonths: rs.MinimumServiceMonths,
 			Requirements:         rs.Requirements,
+			MinPerformanceScore:  rs.MinPerformanceScore,
+			MinCompetencyScore:   rs.MinCompetencyScore,
+			MinOKRScore:          rs.MinOKRScore,
 		})
 	}
 	// Semua posisi harus eksis di tabel positions (bukan hanya format UUID).
@@ -991,6 +994,9 @@ func (s *Service) careerPathToResponse(ctx context.Context, cp *CareerPath, step
 			Sequence:             st.Sequence,
 			MinimumServiceMonths: st.MinimumServiceMonths,
 			Requirements:         st.Requirements,
+			MinPerformanceScore:  st.MinPerformanceScore,
+			MinCompetencyScore:   st.MinCompetencyScore,
+			MinOKRScore:          st.MinOKRScore,
 			PathType:             st.PathType,
 			TypicalTenure:        st.TypicalTenure,
 			Competencies:         st.Competencies,

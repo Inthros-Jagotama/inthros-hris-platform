@@ -2512,6 +2512,9 @@ func (s *Service) GetPromotionEligibility(ctx context.Context, employeeID string
 		TenureMonths:         data.TenureMonths,
 		CurrentPosition:      data.CurrentPosition,
 		MinimumServiceMonths: eligibilityDefaultMinServiceMonths,
+		MinPerformanceScore:  eligibilityMinPerformanceScore,
+		MinCompetencyScore:   eligibilityMinCompetencyScore,
+		MinOKRScore:          eligibilityMinOKRScore,
 		PerformanceScore:     data.PerformanceScore,
 		CompetencyScore:      data.CompetencyScore,
 		OKRScore:             data.OKRScore,
@@ -2527,7 +2530,8 @@ func (s *Service) GetPromotionEligibility(ctx context.Context, employeeID string
 	}
 
 	promo.Rules = s.evaluatePromotionRules(data.TenureMonths, promo.MinimumServiceMonths,
-		data.PerformanceScore, data.CompetencyScore, data.OKRScore)
+		data.PerformanceScore, data.CompetencyScore, data.OKRScore,
+		promo.MinPerformanceScore, promo.MinCompetencyScore, promo.MinOKRScore)
 	promo.Eligible = true
 	for _, r := range promo.Rules {
 		if r.Available && !r.Met {
@@ -2694,7 +2698,8 @@ func (s *Service) evaluateDefaultRules(tenureMonths int, performanceScore, compe
 // evaluatePromotionRules membangun rule untuk promotion-eligibility:
 // minimum service (dari career path atau default 24), performance, competency,
 // dan OKR.
-func (s *Service) evaluatePromotionRules(tenureMonths, minService int, performanceScore, competencyScore, okrScore *float64) []EligibilityRuleResult {
+func (s *Service) evaluatePromotionRules(tenureMonths, minService int, performanceScore, competencyScore, okrScore *float64,
+	minPerformanceScore, minCompetencyScore, minOKRScore float64) []EligibilityRuleResult {
 	rules := make([]EligibilityRuleResult, 0, 4)
 
 	tenureReq := fmt.Sprintf("%d bulan", minService)
@@ -2706,9 +2711,12 @@ func (s *Service) evaluatePromotionRules(tenureMonths, minService int, performan
 		Available: true,
 	})
 
-	rules = append(rules, buildScoreRule("performance", "Skor Kinerja (KPI)", performanceScore, eligibilityMinPerformanceScore))
-	rules = append(rules, buildScoreRule("competency", "Skor Kompetensi", competencyScore, eligibilityMinCompetencyScore))
-	rules = append(rules, buildScoreRule("okr", "Skor OKR", okrScore, eligibilityMinOKRScore))
+	// career_path_requirements (module-career-intelligence-plan.md §9 #6):
+	// threshold di sini adalah override per-langkah bila diset di CI, else
+	// sama dengan default global (lihat GetPromotionEligibility).
+	rules = append(rules, buildScoreRule("performance", "Skor Kinerja (KPI)", performanceScore, minPerformanceScore))
+	rules = append(rules, buildScoreRule("competency", "Skor Kompetensi", competencyScore, minCompetencyScore))
+	rules = append(rules, buildScoreRule("okr", "Skor OKR", okrScore, minOKRScore))
 
 	return rules
 }
@@ -2756,6 +2764,17 @@ func (s *Service) findPromotionNextStep(ctx context.Context, promo *PromotionEli
 	promo.MinimumServiceMonths = eligibilityDefaultMinServiceMonths
 	if nextStep.MinimumServiceMonths != nil && *nextStep.MinimumServiceMonths > 0 {
 		promo.MinimumServiceMonths = *nextStep.MinimumServiceMonths
+	}
+	// career_path_requirements (module-career-intelligence-plan.md §9 #6):
+	// ambang batas skor per langkah, override default global bila diset.
+	if nextStep.MinPerformanceScore != nil {
+		promo.MinPerformanceScore = *nextStep.MinPerformanceScore
+	}
+	if nextStep.MinCompetencyScore != nil {
+		promo.MinCompetencyScore = *nextStep.MinCompetencyScore
+	}
+	if nextStep.MinOKRScore != nil {
+		promo.MinOKRScore = *nextStep.MinOKRScore
 	}
 }
 
