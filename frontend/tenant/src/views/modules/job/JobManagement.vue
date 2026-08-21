@@ -173,7 +173,10 @@ async function loadData() {
       const sc = scoreMap[o.id]
       return {
         ...o,
-        score: sc ? sc.job_value_without_financial : null,
+        // Backend hanya mengisi salah satu dari job_value_with_financial /
+        // job_value_without_financial sesuai has_financial_authority (yang
+        // satunya 0) -- pilih kolom yang sesuai, bukan selalu without_financial.
+        score: sc ? (sc.has_financial_authority ? sc.job_value_with_financial : sc.job_value_without_financial) : null,
         score_has_financial: sc ? (sc.has_financial_authority ? 1 : 0) : null,
         score_complete: sc ? sc.is_complete : null
       }
