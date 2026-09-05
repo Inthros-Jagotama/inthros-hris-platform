@@ -30,5 +30,11 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 
 EXPOSE 80
 
+
+# 127.0.0.1, bukan localhost: nginx.conf custom di sini bikin entrypoint
+# image nginx skip auto-tambah "listen [::]:80" (cuma dilakukan kalau
+# default.conf masih bawaan image), jadi nginx cuma listen IPv4. Kalau
+# healthcheck resolve "localhost" ke ::1 duluan (perilaku musl libc di
+# alpine), wget dapat connection refused walau nginx-nya sehat.
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget -qO- http://localhost/ >/dev/null || exit 1
+    CMD wget -qO- http://127.0.0.1/ >/dev/null || exit 1
