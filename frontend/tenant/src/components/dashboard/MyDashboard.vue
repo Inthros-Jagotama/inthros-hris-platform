@@ -197,6 +197,12 @@ const auth = useAuth()
 const { hasPermission, hasExactPermission } = auth
 const { employeeId, loadMyEmployeeId } = useMyEmployee()
 
+// company_admin/super_admin login lewat fallback platform user (bukan
+// employee tenant) — tidak pernah punya employee_id, jadi widget personal
+// (leave balance, KPI, dst.) di bawah ini di-skip untuk role tersebut.
+// Pola sama dengan Profile.vue.
+const isPlatformUser = computed(() => ['company_admin', 'super_admin', 'admin'].includes(auth.state.user?.role))
+
 // ── Sapaan berdasarkan waktu (pagi/siang/sore/malam) + nama user login ──
 const greetingText = computed(() => {
   const h = new Date().getHours()
@@ -378,7 +384,7 @@ function leaveTypeName(id) {
 }
 
 async function loadMyDashboard() {
-  if (myLoading.value) return
+  if (myLoading.value || isPlatformUser.value) return
   myLoading.value = true
   try {
     const empId = await loadMyEmployeeId()

@@ -83,6 +83,19 @@ func NewMiddleware(cfg MiddlewareConfig) gin.HandlerFunc {
 			return
 		}
 
+		// Listing notifications / unread count is a self-service lookup of the
+		// caller's OWN inbox — recipientUserID always comes from the JWT
+		// (authctx.GetUserID), never a request param, so there is no way to
+		// view someone else's notifications through these two routes. Same
+		// reasoning as the /user-accounts/me bypass above: gating this behind
+		// "notification.view" would block roles that legitimately have no
+		// tenant RBAC permissions declared (e.g. company_admin logged in via
+		// the platform-user fallback) from seeing their own notification bell.
+		if c.FullPath() == "/api/v1/tenant/notifications" || c.FullPath() == "/api/v1/tenant/notifications/unread-count" {
+			c.Next()
+			return
+		}
+
 		// Marking a notification (or all of them) as read is a self-service
 		// action on the caller's OWN notifications — ownership is already
 		// enforced in service.MarkAsRead/MarkAllAsRead via authctx.GetUserID,
