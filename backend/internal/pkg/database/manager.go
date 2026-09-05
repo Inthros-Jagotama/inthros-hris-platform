@@ -50,7 +50,9 @@ type TenantConnection struct {
 	Username  string `gorm:"column:username;type:varchar(100)" json:"username"`
 	Password  string `gorm:"column:password;type:varchar(255)" json:"password"`
 	SSLMode   string `gorm:"column:ssl_mode;type:varchar(20)" json:"sslmode"`
-	IsActive  bool   `gorm:"column:is_active;default:true" json:"is_active"`
+	// int8, bukan bool: kolom is_active SMALLINT, pgx menolak encode Go bool
+	// ke smallint saat query/write ("cannot find encode plan").
+	IsActive int8 `gorm:"column:is_active;default:1" json:"is_active"`
 }
 
 // Config adalah konfigurasi untuk database manager.
@@ -163,7 +165,7 @@ func (m *Manager) connectTenant(companyID string) (*gorm.DB, error) {
 	var conn TenantConnection
 	if err := m.platformDB.
 		Table("tenant_connections").
-		Where("company_id = ? AND is_active = ?", companyID, true).
+		Where("company_id = ? AND is_active = ?", companyID, 1).
 		First(&conn).Error; err != nil {
 		return nil, fmt.Errorf("tenant connection not found for company %s: %w", companyID, err)
 	}
@@ -276,7 +278,7 @@ func (m *Manager) ProvisionTenant(companyID, dbName, dbUser, dbPassword, driverT
 		Username:  dbUser,
 		Password:  dbPassword,
 		SSLMode:   m.cfg.TenantSSLMode,
-		IsActive:  true,
+		IsActive:  1,
 	}
 
 	// Close superuser connection
@@ -346,7 +348,7 @@ func (m *Manager) DeactivateTenantConnection(companyID string) error {
 	result := m.platformDB.
 		Table("tenant_connections").
 		Where("company_id = ?", companyID).
-		Update("is_active", false)
+		Update("is_active", 0)
 	if result.Error != nil {
 		return fmt.Errorf("failed to deactivate tenant connection: %w", result.Error)
 	}
@@ -368,7 +370,7 @@ func (m *Manager) ActivateTenantConnection(companyID string) error {
 	result := m.platformDB.
 		Table("tenant_connections").
 		Where("company_id = ?", companyID).
-		Update("is_active", true)
+		Update("is_active", 1)
 	if result.Error != nil {
 		return fmt.Errorf("failed to activate tenant connection: %w", result.Error)
 	}

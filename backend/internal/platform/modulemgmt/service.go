@@ -62,7 +62,7 @@ func (s *Service) CreateModule(req CreateModuleRequest) (*ModuleResponse, error)
 		Name:    req.Name,
 		Slug:    req.Slug,
 		Version: req.Version,
-		IsCore:  req.IsCore,
+		IsCore:  boolToInt8(req.IsCore),
 	}
 	if desc != "" {
 		module.Description = &desc
@@ -148,7 +148,7 @@ func (s *Service) UpdateModule(id string, req UpdateModuleRequest) (*ModuleRespo
 		module.Description = req.Description
 	}
 	if req.IsCore != nil {
-		module.IsCore = *req.IsCore
+		module.IsCore = boolToInt8(*req.IsCore)
 	}
 	if req.DependsOn != nil {
 		module.DependsOn = req.DependsOn
@@ -197,7 +197,7 @@ func (s *Service) ActivateModule(moduleID, companyID string) (*CompanyModuleResp
 		CompanyID:   cm.CompanyID.String(),
 		ModuleID:    cm.ModuleID.String(),
 		ModuleName:  module.Name,
-		Enabled:     cm.Enabled,
+		Enabled:     cm.Enabled != 0,
 		ActivatedAt: cm.ActivatedAt,
 	}, nil
 }
@@ -235,7 +235,7 @@ func (s *Service) DeactivateModule(moduleID, companyID string) (*CompanyModuleRe
 		CompanyID:   cm.CompanyID.String(),
 		ModuleID:    cm.ModuleID.String(),
 		ModuleName:  module.Name,
-		Enabled:     cm.Enabled,
+		Enabled:     cm.Enabled != 0,
 		ActivatedAt: cm.ActivatedAt,
 	}, nil
 }

@@ -69,7 +69,7 @@ func (m *PlatformModule) ToResponse() ModuleResponse {
 		Version:     m.Version,
 		Description: desc,
 		ModuleType:  m.ModuleType,
-		IsCore:      m.IsCore,
+		IsCore:      m.IsCore != 0,
 		DependsOn:   dep,
 		CreatedAt:   m.CreatedAt,
 		UpdatedAt:   m.UpdatedAt,

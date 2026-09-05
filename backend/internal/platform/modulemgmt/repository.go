@@ -95,7 +95,7 @@ func (r *Repository) UpsertCompanyModule(companyID, moduleID uuid.UUID, enabled 
 	cm := &CompanyModule{
 		CompanyID:   companyID,
 		ModuleID:    moduleID,
-		Enabled:     enabled,
+		Enabled:     boolToInt8(enabled),
 		ActivatedAt: &now,
 	}
 
@@ -104,7 +104,7 @@ func (r *Repository) UpsertCompanyModule(companyID, moduleID uuid.UUID, enabled 
 	err := r.db.Where("company_id = ? AND module_id = ?", companyID, moduleID).First(&existing).Error
 	if err == nil {
 		// Update existing
-		existing.Enabled = enabled
+		existing.Enabled = boolToInt8(enabled)
 		if enabled {
 			existing.ActivatedAt = &now
 		}

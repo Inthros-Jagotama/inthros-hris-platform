@@ -76,7 +76,7 @@ func (u *PlatformUser) ToResponse() UserResponse {
 		Email:     u.Email,
 		Name:      u.Name,
 		Role:      u.Role,
-		IsActive:  u.IsActive,
+		IsActive:  u.IsActive != 0,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
 		LastLogin: u.LastLoginAt,

@@ -17,17 +17,19 @@ const (
 
 // PlatformUser merepresentasikan user yang mengelola platform.
 type PlatformUser struct {
-	ID           uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
-	CompanyID    *uuid.UUID     `gorm:"type:char(36);index" json:"company_id,omitempty"`
-	Email        string         `gorm:"type:varchar(255);unique;not null" json:"email"`
-	PasswordHash string         `gorm:"type:varchar(255);not null" json:"-"`
-	Name         string         `gorm:"type:varchar(255);not null" json:"name"`
-	Role         string         `gorm:"type:varchar(50);default:'admin'" json:"role"`
-	IsActive     bool           `gorm:"default:true" json:"is_active"`
-	LastLoginAt  *time.Time     `json:"last_login_at,omitempty"`
-	CreatedAt    time.Time      `json:"created_at"`
-	UpdatedAt    time.Time      `json:"updated_at"`
-	DeletedAt    gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+	ID           uuid.UUID  `gorm:"type:char(36);primaryKey" json:"id"`
+	CompanyID    *uuid.UUID `gorm:"type:char(36);index" json:"company_id,omitempty"`
+	Email        string     `gorm:"type:varchar(255);unique;not null" json:"email"`
+	PasswordHash string     `gorm:"type:varchar(255);not null" json:"-"`
+	Name         string     `gorm:"type:varchar(255);not null" json:"name"`
+	Role         string     `gorm:"type:varchar(50);default:'admin'" json:"role"`
+	// int8, bukan bool: kolom is_active SMALLINT (003_create_platform_users.sql),
+	// pgx menolak encode Go bool ke smallint ("cannot find encode plan").
+	IsActive    int8           `gorm:"default:1" json:"is_active"`
+	LastLoginAt *time.Time     `json:"last_login_at,omitempty"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+	DeletedAt   gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 }
 
 func (PlatformUser) TableName() string {

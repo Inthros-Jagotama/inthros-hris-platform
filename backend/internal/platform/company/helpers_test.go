@@ -42,7 +42,7 @@ func (f *FakeTenantManager) ProvisionTenant(companyID, dbName, dbUser, dbPasswor
 		CompanyID: companyID,
 		Driver:    driverType,
 		DBName:    dbName,
-		IsActive:  true,
+		IsActive:  1,
 	}, nil
 }
 

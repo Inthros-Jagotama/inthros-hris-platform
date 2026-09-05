@@ -34,7 +34,7 @@ func (s *Service) Login(req LoginRequest) (*LoginResponse, error) {
 		return nil, fmt.Errorf("invalid email or password")
 	}
 
-	if !user.IsActive {
+	if user.IsActive == 0 {
 		return nil, fmt.Errorf("account is deactivated")
 	}
 
@@ -128,7 +128,7 @@ func (s *Service) CreateUser(req CreateUserRequest) (*UserResponse, error) {
 		PasswordHash: string(hashedPassword),
 		Name:         req.Name,
 		Role:         req.Role,
-		IsActive:     true,
+		IsActive:     1,
 	}
 
 	// Set company ID if provided
@@ -251,7 +251,7 @@ func (s *Service) CreateCompanyUser(companyID, name, email, password string) (st
 		Name:         name,
 		Role:         string(RoleCompanyAdmin),
 		CompanyID:    &cid,
-		IsActive:     true,
+		IsActive:     1,
 	}
 
 	if err := s.repo.Create(user); err != nil {
@@ -318,7 +318,11 @@ func (s *Service) UpdateUser(id string, req UpdateUserRequest) (*UserResponse, e
 		user.Role = *req.Role
 	}
 	if req.IsActive != nil {
-		user.IsActive = *req.IsActive
+		if *req.IsActive {
+			user.IsActive = 1
+		} else {
+			user.IsActive = 0
+		}
 	}
 
 	if err := s.repo.Update(user); err != nil {
@@ -395,7 +399,7 @@ func (s *Service) EnsureSeed(db *gorm.DB) error {
 		PasswordHash: string(hashedPassword),
 		Name:         "Super Admin",
 		Role:         string(RoleSuperAdmin),
-		IsActive:     true,
+		IsActive:     1,
 	}
 	// Generate UUID langsung tanpa hook
 	if superAdmin.ID == uuid.Nil {
