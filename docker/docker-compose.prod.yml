@@ -19,6 +19,10 @@
 #   2. direktori data dibuat sekali:  mkdir -p $SERVER_APP_DIR/data/postgres $SERVER_APP_DIR/data/uploads
 #      (permission di dalamnya diperbaiki otomatis oleh entrypoint image
 #      postgres saat pertama kali init, tidak perlu chown manual)
+#   3. Trafik publik (domain/subdomain + TLS) diurus nginx yang jalan di host
+#      (bukan container) — server ini sudah punya nginx sendiri untuk landing
+#      page inthros.com, jadi reverse proxy tenant-web/admin-web ditambahkan
+#      di situ, bukan lewat container terpisah.
 
 networks:
   hris-network:
@@ -98,9 +102,10 @@ services:
     restart: unless-stopped
     networks:
       - hris-network
-    # Hanya di-bind ke loopback: trafik publik masuk lewat nginx di
-    # tenant-web / admin-web. Port ini untuk debugging dari dalam server
-    # (mis. curl 127.0.0.1:8080/healthz) dan dipakai workflow deploy.
+    # Hanya di-bind ke loopback: trafik publik masuk lewat nginx host (lihat
+    # blok komentar di atas) yang proxy ke tenant-web / admin-web. Port ini
+    # untuk debugging dari dalam server (mis. curl 127.0.0.1:8080/healthz)
+    # dan dipakai workflow deploy.
     ports:
       - "127.0.0.1:8080:8080"
     env_file:
@@ -133,8 +138,11 @@ services:
     restart: unless-stopped
     networks:
       - hris-network
+    # Hanya di-bind ke loopback: trafik publik masuk lewat nginx host (port
+    # 80/443, sudah dipakai landing page inthros.com), bukan langsung ke
+    # sini. Port ini untuk debugging dari dalam server.
     ports:
-      - "${TENANT_WEB_PORT:-8090}:80"
+      - "127.0.0.1:${TENANT_WEB_PORT:-8090}:80"
     depends_on:
       - api
 
@@ -147,8 +155,9 @@ services:
     restart: unless-stopped
     networks:
       - hris-network
+    # Hanya di-bind ke loopback — sama alasannya dengan tenant-web di atas.
     ports:
-      - "${ADMIN_WEB_PORT:-8091}:80"
+      - "127.0.0.1:${ADMIN_WEB_PORT:-8091}:80"
     depends_on:
       - api
 
