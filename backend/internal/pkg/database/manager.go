@@ -170,6 +170,21 @@ func (m *Manager) connectTenant(companyID string) (*gorm.DB, error) {
 		return nil, fmt.Errorf("tenant connection not found for company %s: %w", companyID, err)
 	}
 
+	// Password tersimpan terenkripsi AES-256-GCM (lihat SaveTenantConnection) —
+	// wajib didekripsi dulu, kalau tidak DSN akan connect pakai ciphertext.
+	if conn.Password != "" {
+		if decrypted, err := crypto.DecryptString(conn.Password); err != nil {
+			// Fallback: treat as plaintext (data lama dari sebelum enkripsi
+			// diaktifkan) — sama seperti FindTenantConnection.
+			m.logger.Warn("Failed to decrypt tenant password (may be plaintext from before encryption was added)",
+				zap.String("company_id", companyID),
+				zap.Error(err),
+			)
+		} else {
+			conn.Password = decrypted
+		}
+	}
+
 	// Tentukan driver: prefer dari tenant connection, fallback ke default manager
 	driver := conn.Driver
 	if driver == "" {
