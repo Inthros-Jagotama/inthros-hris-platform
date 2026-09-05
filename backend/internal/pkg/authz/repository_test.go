@@ -185,7 +185,7 @@ func TestRepository_DeleteRole_NonSystem(t *testing.T) {
 
 	repo := NewRepository(db)
 
-	role := &RbacRole{Name: "Custom", Slug: "custom", IsSystem: false}
+	role := &RbacRole{Name: "Custom", Slug: "custom", IsSystem: 0}
 	if err := repo.CreateRole(role); err != nil {
 		t.Fatalf("CreateRole failed: %v", err)
 	}
@@ -207,7 +207,7 @@ func TestRepository_DeleteRole_SystemRole_Fails(t *testing.T) {
 
 	repo := NewRepository(db)
 
-	role := &RbacRole{Name: "System", Slug: "system", IsSystem: true}
+	role := &RbacRole{Name: "System", Slug: "system", IsSystem: 1}
 	if err := repo.CreateRole(role); err != nil {
 		t.Fatalf("CreateRole failed: %v", err)
 	}
@@ -329,7 +329,7 @@ func TestRepository_DeletePermission_NonSystem(t *testing.T) {
 
 	repo := NewRepository(db)
 
-	perm := &RbacPermission{Resource: "custom", Action: "test", IsSystem: false}
+	perm := &RbacPermission{Resource: "custom", Action: "test", IsSystem: 0}
 	if err := repo.CreatePermission(perm); err != nil {
 		t.Fatalf("CreatePermission failed: %v", err)
 	}
@@ -350,7 +350,7 @@ func TestRepository_DeletePermission_System_Fails(t *testing.T) {
 
 	repo := NewRepository(db)
 
-	perm := &RbacPermission{Resource: "system", Action: "test", IsSystem: true}
+	perm := &RbacPermission{Resource: "system", Action: "test", IsSystem: 1}
 	if err := repo.CreatePermission(perm); err != nil {
 		t.Fatalf("CreatePermission failed: %v", err)
 	}

@@ -14,9 +14,11 @@ type RbacRole struct {
 	Slug        string     `gorm:"type:varchar(50);not null;uniqueIndex" json:"slug"`
 	Description *string    `gorm:"type:varchar(255)" json:"description,omitempty"`
 	ParentID    *uuid.UUID `gorm:"type:char(36)" json:"parent_id,omitempty"`
-	IsSystem    bool       `gorm:"type:smallint;not null;default:0" json:"is_system"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
+	// int8, bukan bool: driver pgx menolak encode Go bool ke kolom smallint
+	// ("cannot find encode plan"). Konvensi sama dipakai di useraccount.IsActive.
+	IsSystem  int8      `gorm:"type:smallint;not null;default:0" json:"is_system"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 
 	// Relasi
 	Permissions []RbacRolePermission `gorm:"foreignKey:RoleID" json:"permissions,omitempty"`
@@ -39,7 +41,7 @@ type RbacPermission struct {
 	Resource    string    `gorm:"type:varchar(100);not null;uniqueIndex:uq_rbac_permission" json:"resource"`
 	Action      string    `gorm:"type:varchar(50);not null;uniqueIndex:uq_rbac_permission" json:"action"`
 	Description *string   `gorm:"type:varchar(255)" json:"description,omitempty"`
-	IsSystem    bool      `gorm:"type:smallint;not null;default:0" json:"is_system"`
+	IsSystem    int8      `gorm:"type:smallint;not null;default:0" json:"is_system"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 

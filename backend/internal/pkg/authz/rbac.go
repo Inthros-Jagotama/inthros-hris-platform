@@ -313,10 +313,10 @@ func (e *Enforcer) seedDefaults(db *gorm.DB) error {
 	employeeUUID := uuid.MustParse("00000000-0000-0000-0000-000000000004")
 
 	roles := []RbacRole{
-		{ID: superAdminUUID, Name: "Super Admin", Slug: string(RoleSuperAdmin), Description: strPtr("Full access to all resources"), IsSystem: true},
-		{ID: companyAdminUUID, Name: "Company Admin", Slug: string(RoleCompanyAdmin), Description: strPtr("Platform view + tenant full access"), ParentID: &superAdminUUID, IsSystem: true},
-		{ID: managerUUID, Name: "Manager", Slug: string(RoleManager), Description: strPtr("Tenant view/create/update"), ParentID: &companyAdminUUID, IsSystem: true},
-		{ID: employeeUUID, Name: "Employee", Slug: string(RoleEmployee), Description: strPtr("Tenant view-only"), ParentID: &managerUUID, IsSystem: true},
+		{ID: superAdminUUID, Name: "Super Admin", Slug: string(RoleSuperAdmin), Description: strPtr("Full access to all resources"), IsSystem: 1},
+		{ID: companyAdminUUID, Name: "Company Admin", Slug: string(RoleCompanyAdmin), Description: strPtr("Platform view + tenant full access"), ParentID: &superAdminUUID, IsSystem: 1},
+		{ID: managerUUID, Name: "Manager", Slug: string(RoleManager), Description: strPtr("Tenant view/create/update"), ParentID: &companyAdminUUID, IsSystem: 1},
+		{ID: employeeUUID, Name: "Employee", Slug: string(RoleEmployee), Description: strPtr("Tenant view-only"), ParentID: &managerUUID, IsSystem: 1},
 	}
 
 	for _, r := range roles {
@@ -340,7 +340,7 @@ func (e *Enforcer) seedDefaults(db *gorm.DB) error {
 				Resource:    r.resource,
 				Action:      action,
 				Description: strPtr(fmt.Sprintf("Can %s %s", action, r.resource)),
-				IsSystem:    true,
+				IsSystem:    1,
 			}
 			if err := db.Create(&perm).Error; err != nil {
 				return fmt.Errorf("failed to seed permission %s.%s: %w", r.resource, action, err)
@@ -585,7 +585,7 @@ func (e *Enforcer) upsertMissingPermissions(db *gorm.DB) error {
 				Resource:    r.resource,
 				Action:      action,
 				Description: strPtr(fmt.Sprintf("Can %s %s", action, r.resource)),
-				IsSystem:    true,
+				IsSystem:    1,
 			}
 			if err := db.Create(&perm).Error; err != nil {
 				return fmt.Errorf("failed to create permission %s.%s: %w", r.resource, action, err)

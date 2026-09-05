@@ -60,7 +60,7 @@ func (r *Repository) UpdateRole(role *RbacRole) error {
 
 // DeleteRole menghapus role (hanya jika bukan system role).
 func (r *Repository) DeleteRole(id uuid.UUID) error {
-	result := r.db.Where("id = ? AND is_system = ?", id, false).Delete(&RbacRole{})
+	result := r.db.Where("id = ? AND is_system = ?", id, 0).Delete(&RbacRole{})
 	if result.Error != nil {
 		return result.Error
 	}
@@ -99,7 +99,7 @@ func (r *Repository) FindAllPermissions() ([]RbacPermission, error) {
 
 // DeletePermission menghapus permission (hanya jika bukan system).
 func (r *Repository) DeletePermission(id uuid.UUID) error {
-	result := r.db.Where("id = ? AND is_system = ?", id, false).Delete(&RbacPermission{})
+	result := r.db.Where("id = ? AND is_system = ?", id, 0).Delete(&RbacPermission{})
 	if result.Error != nil {
 		return result.Error
 	}

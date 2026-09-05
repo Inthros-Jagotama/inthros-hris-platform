@@ -239,7 +239,7 @@ func (s *Service) CreatePermission(req CreatePermissionRequest) (*PermissionResp
 		Resource:    perm.Resource,
 		Action:      perm.Action,
 		Description: safeStr(perm.Description),
-		IsSystem:    perm.IsSystem,
+		IsSystem:    perm.IsSystem != 0,
 		CreatedAt:   perm.CreatedAt,
 	}
 	return &resp, nil
@@ -258,7 +258,7 @@ func (s *Service) ListPermissions() ([]PermissionResponse, error) {
 			Resource:    p.Resource,
 			Action:      p.Action,
 			Description: safeStr(p.Description),
-			IsSystem:    p.IsSystem,
+			IsSystem:    p.IsSystem != 0,
 			CreatedAt:   p.CreatedAt,
 		})
 	}
@@ -332,7 +332,7 @@ func roleToResponse(role *RbacRole, perms []PermissionInfo) RoleResponse {
 		ID:        role.ID.String(),
 		Name:      role.Name,
 		Slug:      role.Slug,
-		IsSystem:  role.IsSystem,
+		IsSystem:  role.IsSystem != 0,
 		CreatedAt: role.CreatedAt,
 		UpdatedAt: role.UpdatedAt,
 	}
