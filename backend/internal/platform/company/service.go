@@ -1,7 +1,6 @@
 package company
 
 import (
-	"crypto/rand"
 	"fmt"
 	"strings"
 
@@ -194,32 +193,41 @@ func (s *Service) provisionTenant(company *Company) error {
 	// 1. Generate database name dari company slug
 	dbName := fmt.Sprintf("hris_%s", company.Slug)
 
-	// 2. Create database via superuser connection
-	// Untuk development, tenant DB menggunakan kredensial superuser yang sama
-	// Production: buat dedicated database user per tenant
+	// 2. Kredensial khusus per tenant — BUKAN superuser, supaya satu tenant
+	// tidak bisa menyentuh database tenant lain. Password acak, disimpan
+	// terenkripsi oleh SaveTenantConnection dan tidak pernah ditampilkan;
+	// kalau tenant butuh kredensialnya, pakai endpoint rotate-credentials
+	// yang mengembalikan password baru sekali saja.
+	dbUser := database.TenantUsername(company.Slug, company.ID.String())
+	dbPassword, err := generateStrongPassword(24)
+	if err != nil {
+		return fmt.Errorf("failed to generate tenant db password: %w", err)
+	}
+
+	// 3. Create database + user via superuser connection
 	conn, err := s.dbManager.ProvisionTenant(
 		company.ID.String(),
 		dbName,
-		"root",   // username — development: root user
-		"",       // password — development: empty
+		dbUser,
+		dbPassword,
 		s.dbManager.Driver(),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create tenant database: %w", err)
 	}
 
-	// 3. Simpan TenantConnection ke platform DB
+	// 4. Simpan TenantConnection ke platform DB
 	if err := s.dbManager.SaveTenantConnection(conn); err != nil {
 		return fmt.Errorf("failed to save tenant connection: %w", err)
 	}
 
-	// 4. Dapatkan koneksi GORM ke tenant database
+	// 5. Dapatkan koneksi GORM ke tenant database
 	tenantDB, err := s.dbManager.TenantDB(company.ID.String())
 	if err != nil {
 		return fmt.Errorf("failed to connect to tenant database: %w", err)
 	}
 
-	// 5. Jalankan tenant SQL migrations (pilih dialect sesuai driver)
+	// 6. Jalankan tenant SQL migrations (pilih dialect sesuai driver)
 	s.logger.Info("Running tenant SQL migrations...")
 	tenantRoot := migrator.TenantRootPath(s.dbManager.Driver())
 	tenantMigrator := migrator.New(tenantDB, s.logger, migrator.MigrationsFS, tenantRoot)
@@ -227,7 +235,7 @@ func (s *Service) provisionTenant(company *Company) error {
 		return fmt.Errorf("tenant migration failed: %w", err)
 	}
 
-	// 6. Seed master reference data + default RBAC (sama seperti CLI handleProvision)
+	// 7. Seed master reference data + default RBAC (sama seperti CLI handleProvision)
 	s.logger.Info("Seeding tenant master data...")
 	if err := tenantseed.SeedTenantMasterData(tenantDB, s.logger); err != nil {
 		return fmt.Errorf("tenant master data seeding failed: %w", err)
@@ -294,15 +302,7 @@ func (s *Service) RotateCredentials(id, newPassword string) (*RotateCredentialsR
 // generateStrongPassword membuat password acak kuat (karakter alfanumerik +
 // simbol aman untuk SQL string literal — tanpa quote/backslash).
 func generateStrongPassword(length int) (string, error) {
-	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*-_=+"
-	b := make([]byte, length)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	for i := range b {
-		b[i] = charset[int(b[i])%len(charset)]
-	}
-	return string(b), nil
+	return database.GenerateStrongPassword(length)
 }
 
 // MigrateTenantDB menjalankan migration pada tenant database yang sudah ada.

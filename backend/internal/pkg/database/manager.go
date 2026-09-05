@@ -220,6 +220,17 @@ func (m *Manager) connectTenant(companyID string) (*gorm.DB, error) {
 //
 // Returns: tenant connection info dan error.
 func (m *Manager) ProvisionTenant(companyID, dbName, dbUser, dbPassword, driverType string) (*TenantConnection, error) {
+	// Kredensial dipakai langsung sebagai SQL string literal saat CREATE USER
+	// di bawah, jadi tolak karakter yang bisa memecah quote — escape
+	// lintas-dialect MySQL/PostgreSQL tidak seragam, alasan yang sama dengan
+	// RotateTenantCredentials. Dicek sebelum membuka koneksi apa pun.
+	if dbUser == "" || dbPassword == "" {
+		return nil, fmt.Errorf("tenant db user dan password wajib diisi")
+	}
+	if strings.ContainsAny(dbUser, "'\"\\") || strings.ContainsAny(dbPassword, "'\\") {
+		return nil, fmt.Errorf("tenant db user/password mengandung karakter yang tidak diizinkan (quote atau backslash)")
+	}
+
 	// 1. Connect sebagai superuser untuk create database
 	var superDSN string
 	// Untuk create database, connect tanpa database tertentu
@@ -242,8 +253,20 @@ func (m *Manager) ProvisionTenant(companyID, dbName, dbUser, dbPassword, driverT
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect as superuser: %w", err)
 	}
+	// defer, bukan close manual di akhir: provisioning punya banyak jalur
+	// error di bawah dan koneksi superuser tidak boleh menggantung di
+	// satupun dari jalur itu.
+	defer func() {
+		if sqlDB, err := superDB.DB(); err == nil {
+			sqlDB.Close()
+		}
+	}()
 
-	// 2. Create database
+	// 2. Create user + database.
+	//
+	// Tenant memakai user database sendiri (bukan superuser) supaya satu tenant
+	// tidak bisa menyentuh database tenant lain: di PostgreSQL user tersebut
+	// dijadikan OWNER database-nya, di MySQL grant dibatasi ke database itu saja.
 	switch driver.Parse(driverType) {
 	case driver.MySQL:
 		if err := superDB.Exec(fmt.Sprintf(
@@ -252,12 +275,57 @@ func (m *Manager) ProvisionTenant(companyID, dbName, dbUser, dbPassword, driverT
 		)).Error; err != nil {
 			return nil, fmt.Errorf("failed to create MySQL database: %w", err)
 		}
-	default: // postgres
 		if err := superDB.Exec(fmt.Sprintf(
-			"CREATE DATABASE \"%s\"",
-			dbName,
+			"CREATE USER IF NOT EXISTS '%s'@'%%' IDENTIFIED BY '%s'",
+			dbUser, dbPassword,
+		)).Error; err != nil {
+			return nil, fmt.Errorf("failed to create MySQL user: %w", err)
+		}
+		if err := superDB.Exec(fmt.Sprintf(
+			"GRANT ALL PRIVILEGES ON `%s`.* TO '%s'@'%%'",
+			dbName, dbUser,
+		)).Error; err != nil {
+			return nil, fmt.Errorf("failed to grant MySQL privileges: %w", err)
+		}
+	default: // postgres
+		// CREATE ROLE tidak punya bentuk "IF NOT EXISTS", jadi cek dulu —
+		// provisioning ulang setelah gagal di tengah jalan tidak boleh error
+		// hanya karena role-nya sudah terlanjur dibuat.
+		var roleExists bool
+		if err := superDB.Raw(
+			"SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = ?)", dbUser,
+		).Scan(&roleExists).Error; err != nil {
+			return nil, fmt.Errorf("failed to check PostgreSQL role: %w", err)
+		}
+		if roleExists {
+			// Password disamakan dengan yang akan disimpan, supaya row
+			// tenant_connections dan server DB tidak pernah out-of-sync.
+			if err := superDB.Exec(fmt.Sprintf(
+				"ALTER ROLE \"%s\" WITH LOGIN PASSWORD '%s'",
+				dbUser, dbPassword,
+			)).Error; err != nil {
+				return nil, fmt.Errorf("failed to reset PostgreSQL role password: %w", err)
+			}
+		} else if err := superDB.Exec(fmt.Sprintf(
+			"CREATE ROLE \"%s\" WITH LOGIN PASSWORD '%s'",
+			dbUser, dbPassword,
+		)).Error; err != nil {
+			return nil, fmt.Errorf("failed to create PostgreSQL role: %w", err)
+		}
+
+		if err := superDB.Exec(fmt.Sprintf(
+			"CREATE DATABASE \"%s\" OWNER \"%s\"",
+			dbName, dbUser,
 		)).Error; err != nil {
 			return nil, fmt.Errorf("failed to create PostgreSQL database: %w", err)
+		}
+
+		// Sejak PostgreSQL 15, schema `public` tidak lagi memberi hak CREATE ke
+		// PUBLIC, dan owner schema tetap ikut template (superuser) meski owner
+		// database sudah diganti. Tanpa langkah ini migrasi tenant gagal saat
+		// CREATE TABLE. Harus dijalankan di dalam database tenant itu sendiri.
+		if err := m.grantPublicSchemaOwner(driverType, dbName, dbUser); err != nil {
+			return nil, err
 		}
 	}
 
@@ -281,17 +349,49 @@ func (m *Manager) ProvisionTenant(companyID, dbName, dbUser, dbPassword, driverT
 		IsActive:  1,
 	}
 
-	// Close superuser connection
-	if sqlDB, err := superDB.DB(); err == nil {
-		sqlDB.Close()
-	}
-
 	m.logger.Info("Tenant provisioned successfully",
 		zap.String("company_id", companyID),
 		zap.String("db_name", dbName),
 	)
 
 	return conn, nil
+}
+
+// grantPublicSchemaOwner menjadikan user tenant sebagai owner schema `public`
+// di dalam database tenant yang baru dibuat.
+//
+// Kenapa perlu: `CREATE DATABASE ... OWNER x` hanya mengubah owner database,
+// sedangkan schema `public` di dalamnya diwarisi dari template1 dan tetap milik
+// superuser. Sejak PostgreSQL 15 schema public juga tidak lagi memberi hak
+// CREATE ke role PUBLIC, sehingga user tenant tidak bisa membuat tabel sama
+// sekali — migrasi tenant akan gagal di CREATE TABLE pertama.
+//
+// Butuh koneksi terpisah karena ALTER SCHEMA hanya berlaku pada database yang
+// sedang terhubung (tidak bisa dijalankan dari koneksi ke database `postgres`).
+func (m *Manager) grantPublicSchemaOwner(driverType, dbName, dbUser string) error {
+	dsn := buildDSN(
+		driverType,
+		m.cfg.TenantHost, m.cfg.TenantPort,
+		m.cfg.TenantSuperUser, m.cfg.TenantSuperPass,
+		dbName, m.cfg.TenantSSLMode,
+	)
+
+	db, err := openGORM(driverType, dsn, m.cfg.LogLevel)
+	if err != nil {
+		return fmt.Errorf("failed to connect to new tenant database: %w", err)
+	}
+	defer func() {
+		if sqlDB, err := db.DB(); err == nil {
+			sqlDB.Close()
+		}
+	}()
+
+	if err := db.Exec(fmt.Sprintf(
+		"ALTER SCHEMA public OWNER TO \"%s\"", dbUser,
+	)).Error; err != nil {
+		return fmt.Errorf("failed to set public schema owner: %w", err)
+	}
+	return nil
 }
 
 // SaveTenantConnection menyimpan atau mengupdate TenantConnection di platform DB.

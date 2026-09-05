@@ -208,8 +208,17 @@ func handleProvision(l *zap.Logger, dbManager *database.Manager, companyID, dbNa
 		dbName = fmt.Sprintf("hris_tenant_%s", companyID[:8])
 	}
 
-	// 1. Create database
-	conn, err := dbManager.ProvisionTenant(companyID, dbName, "root", "", dbManager.Driver())
+	// 1. Create database + user khusus tenant (bukan superuser, supaya satu
+	// tenant tidak bisa menyentuh database tenant lain). Password acak dan
+	// disimpan terenkripsi oleh SaveTenantConnection — kalau nanti perlu
+	// dibagikan, pakai endpoint rotate-credentials.
+	dbUser := database.TenantUsername(dbName, companyID)
+	dbPassword, err := database.GenerateStrongPassword(24)
+	if err != nil {
+		l.Fatal("Failed to generate tenant db password", zap.Error(err))
+	}
+
+	conn, err := dbManager.ProvisionTenant(companyID, dbName, dbUser, dbPassword, dbManager.Driver())
 	if err != nil {
 		l.Fatal("Failed to create tenant database", zap.Error(err))
 	}
