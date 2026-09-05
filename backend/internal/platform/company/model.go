@@ -33,7 +33,7 @@ type LicenseRef struct {
 type Company struct {
 	ID        uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
 	Name      string         `gorm:"type:varchar(255);not null" json:"name"`
-	Slug      string         `gorm:"type:varchar(100);uniqueIndex;not null" json:"slug"`
+	Slug      string         `gorm:"type:varchar(100);unique;not null" json:"slug"`
 	Subdomain *string        `gorm:"type:varchar(100);uniqueIndex" json:"subdomain,omitempty"`
 	Domain    *string        `gorm:"type:varchar(255);uniqueIndex" json:"domain,omitempty"`
 	NPWP      *string        `gorm:"type:varchar(16)" json:"npwp,omitempty"`

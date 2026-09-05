@@ -12,7 +12,7 @@ import (
 // (postgres atau mysql) sesuai kebutuhan.
 type TenantConnection struct {
 	ID        uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
-	CompanyID uuid.UUID      `gorm:"type:char(36);uniqueIndex;not null;constraint:OnDelete:CASCADE" json:"company_id"`
+	CompanyID uuid.UUID      `gorm:"type:char(36);unique;not null;constraint:OnDelete:CASCADE" json:"company_id"`
 	Driver    string         `gorm:"type:varchar(20);default:'postgres'" json:"driver"` // postgres | mysql
 	Host      string         `gorm:"type:varchar(255);not null;default:'localhost'" json:"host"`
 	Port      int            `gorm:"type:integer;not null;default:5432" json:"port"`

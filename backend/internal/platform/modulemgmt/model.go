@@ -11,7 +11,7 @@ import (
 type PlatformModule struct {
 	ID          string         `gorm:"type:char(36);primaryKey" json:"id"`
 	Name        string         `gorm:"type:varchar(255);not null" json:"name"`
-	Slug        string         `gorm:"type:varchar(100);uniqueIndex;not null" json:"slug"`
+	Slug        string         `gorm:"type:varchar(100);unique;not null" json:"slug"`
 	Version     string         `gorm:"type:varchar(20);not null" json:"version"`
 	Description *string        `gorm:"type:text" json:"description,omitempty"`
 	ModuleType  string         `gorm:"type:varchar(20);default:tenant;not null" json:"module_type"`

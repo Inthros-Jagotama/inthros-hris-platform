@@ -19,7 +19,7 @@ const (
 type PlatformUser struct {
 	ID           uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
 	CompanyID    *uuid.UUID     `gorm:"type:char(36);index" json:"company_id,omitempty"`
-	Email        string         `gorm:"type:varchar(255);uniqueIndex;not null" json:"email"`
+	Email        string         `gorm:"type:varchar(255);unique;not null" json:"email"`
 	PasswordHash string         `gorm:"type:varchar(255);not null" json:"-"`
 	Name         string         `gorm:"type:varchar(255);not null" json:"name"`
 	Role         string         `gorm:"type:varchar(50);default:'admin'" json:"role"`

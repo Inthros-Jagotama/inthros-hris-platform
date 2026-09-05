@@ -34,7 +34,7 @@ const (
 type License struct {
 	ID           uuid.UUID      `gorm:"type:char(36);primaryKey" json:"id"`
 	CompanyID    uuid.UUID      `gorm:"type:char(36);not null;index" json:"company_id"`
-	LicenseKey   string         `gorm:"type:varchar(100);uniqueIndex;not null" json:"license_key"`
+	LicenseKey   string         `gorm:"type:varchar(100);unique;not null" json:"license_key"`
 	PlanType     string         `gorm:"type:varchar(50);not null" json:"plan_type"`
 	MaxEmployees int            `gorm:"default:0" json:"max_employees"`
 	MaxModules   int            `gorm:"default:0" json:"max_modules"`
