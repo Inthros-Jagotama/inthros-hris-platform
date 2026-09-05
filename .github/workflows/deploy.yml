@@ -178,12 +178,12 @@ jobs:
             # Image di GHCR default-nya private; server perlu login untuk pull.
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
 
-            # Volume data postgres dideklarasikan `external` supaya tidak ikut
-            # terhapus oleh `docker compose down -v`. Konsekuensinya compose
-            # tidak akan membuatnya sendiri — dibuat di sini kalau belum ada.
-            # Idempotent: kalau sudah ada, isinya tidak disentuh sama sekali.
-            docker volume inspect hris-pgdata >/dev/null 2>&1 \
-              || docker volume create hris-pgdata
+            # Data postgres & uploads memakai bind mount (./data/...), bukan
+            # named volume — lokasinya tetap di $APP_DIR, tidak ikut hilang
+            # kalau ada yang menjalankan `docker compose down -v`. mkdir -p
+            # idempotent: aman dijalankan berkali-kali, tidak menyentuh isi
+            # yang sudah ada.
+            mkdir -p data/postgres data/uploads
 
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d --remove-orphans

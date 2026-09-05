@@ -37,6 +37,10 @@ vendor/
 # === Docker ===
 backend/docker/.dockerignore
 
+# Bind-mount data produksi (postgres/uploads) kalau compose prod pernah
+# dijalankan dari dalam checkout ini — data sungguhan, tidak boleh ke-commit.
+docker/data/
+
 # === Miscellaneous ===
 tmp/
 temp/

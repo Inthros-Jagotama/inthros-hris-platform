@@ -5,14 +5,20 @@
 #     deploy tidak pernah memegang source code
 #   - tidak ada mailpit (mail catcher dev) maupun asynqmon
 #   - tidak ada port database yang di-publish ke host
-#   - volume data postgres bersifat `external` (lihat blok volumes di bawah)
+#   - data postgres & uploads memakai bind mount ke ./data/ (lihat blok
+#     volumes di bawah), bukan named volume — supaya lokasinya jelas di
+#     bawah SERVER_APP_DIR, tidak perlu dicari lewat `docker volume inspect`
 #
 # Dipakai oleh .github/workflows/deploy.yml, yang menyalin file ini ke
 # SERVER_APP_DIR lalu menjalankan `docker compose -f docker-compose.prod.yml`.
+# Path relatif (./data/...) di bawah selalu resolve terhadap direktori file
+# compose ini sendiri, jadi otomatis jadi $SERVER_APP_DIR/data/...
 #
-# Prasyarat di server:
+# Prasyarat di server (lihat juga README bagian deploy):
 #   1. file `.env` di direktori yang sama — lihat .env.prod.example
-#   2. volume data dibuat sekali:  docker volume create hris-pgdata
+#   2. direktori data dibuat sekali:  mkdir -p $SERVER_APP_DIR/data/postgres $SERVER_APP_DIR/data/uploads
+#      (permission di dalamnya diperbaiki otomatis oleh entrypoint image
+#      postgres saat pertama kali init, tidak perlu chown manual)
 
 networks:
   hris-network:
@@ -20,26 +26,20 @@ networks:
 
 volumes:
   redisdata:
-  uploads_data:
 
   # ===================================================================
-  # Data PostgreSQL — sengaja `external`
+  # Bind mount, sengaja BUKAN named volume — lihat blok komentar di atas
   # ===================================================================
-  # Volume external TIDAK PERNAH dihapus oleh compose, termasuk oleh
-  # `docker compose down -v`. Ini pengaman yang disengaja.
+  # Bind mount tidak pernah dihapus compose, termasuk oleh
+  # `docker compose down -v` (beda dari named volume yang oleh -v akan
+  # dihapus kecuali ditandai `external: true`). Jadi ini pengaman yang
+  # sama kuatnya, tanpa perlu deklarasi `external`.
   #
-  # Alasannya khusus untuk platform ini: satu server postgres menampung DB
+  # Alasan khusus platform ini: satu server postgres menampung DB
   # platform DAN satu database per company tenant (dibuat runtime lewat
   # CREATE DATABASE, lihat internal/pkg/database/manager.go:255). Jadi
   # `down -v` yang tidak sengaja bukan menghapus satu database, melainkan
   # data SELURUH company sekaligus.
-  #
-  # Konsekuensinya volume ini harus dibuat manual sekali sebelum deploy
-  # pertama, dan dihapus pun harus manual dan disengaja:
-  #     docker volume create hris-pgdata
-  pgdata:
-    external: true
-    name: hris-pgdata
 
 services:
   # ===================================================================
@@ -65,7 +65,7 @@ services:
       POSTGRES_USER: ${HRIS_DATABASE_PLATFORM_USER:?wajib diisi di .env}
       POSTGRES_PASSWORD: ${HRIS_DATABASE_PLATFORM_PASSWORD:?wajib diisi di .env}
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - ./data/postgres:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
@@ -117,7 +117,7 @@ services:
       HRIS_STORAGE_LIBREOFFICE_PATH: "/usr/bin/soffice"
     volumes:
       # Template .docx, previews/, generated_documents/ — harus persist.
-      - uploads_data:/app/uploads
+      - ./data/uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
