@@ -1,0 +1,16 @@
+# Build context backend/ — lihat docker/docker-compose.yml (context: ../backend).
+# Dockerfile melakukan `COPY . .`, jadi apa pun yang tidak di-ignore ikut masuk.
+
+bin/
+uploads/
+coverage.out
+coverage.html
+test-output.log
+bench-cache-output.log
+
+# Artefak lokal yang tidak pernah dibutuhkan saat build
+*.log
+.env
+.env.*
+tmp/
+.air.toml

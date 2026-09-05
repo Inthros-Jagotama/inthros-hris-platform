@@ -1,0 +1,174 @@
+# HRIS Platform — Compose PRODUKSI
+#
+# Berbeda dari docker-compose.yml (yang murni untuk development):
+#   - service aplikasi memakai `image:` dari GHCR, tidak ada `build:` — server
+#     deploy tidak pernah memegang source code
+#   - tidak ada mailpit (mail catcher dev) maupun asynqmon
+#   - tidak ada port database yang di-publish ke host
+#   - volume data postgres bersifat `external` (lihat blok volumes di bawah)
+#
+# Dipakai oleh .github/workflows/deploy.yml, yang menyalin file ini ke
+# SERVER_APP_DIR lalu menjalankan `docker compose -f docker-compose.prod.yml`.
+#
+# Prasyarat di server:
+#   1. file `.env` di direktori yang sama — lihat .env.prod.example
+#   2. volume data dibuat sekali:  docker volume create hris-pgdata
+
+networks:
+  hris-network:
+    driver: bridge
+
+volumes:
+  redisdata:
+  uploads_data:
+
+  # ===================================================================
+  # Data PostgreSQL — sengaja `external`
+  # ===================================================================
+  # Volume external TIDAK PERNAH dihapus oleh compose, termasuk oleh
+  # `docker compose down -v`. Ini pengaman yang disengaja.
+  #
+  # Alasannya khusus untuk platform ini: satu server postgres menampung DB
+  # platform DAN satu database per company tenant (dibuat runtime lewat
+  # CREATE DATABASE, lihat internal/pkg/database/manager.go:255). Jadi
+  # `down -v` yang tidak sengaja bukan menghapus satu database, melainkan
+  # data SELURUH company sekaligus.
+  #
+  # Konsekuensinya volume ini harus dibuat manual sekali sebelum deploy
+  # pertama, dan dihapus pun harus manual dan disengaja:
+  #     docker volume create hris-pgdata
+  pgdata:
+    external: true
+    name: hris-pgdata
+
+services:
+  # ===================================================================
+  # PostgreSQL
+  # ===================================================================
+  # Tidak mem-publish port ke host: hanya diakses api lewat network internal.
+  #
+  # POSTGRES_USER yang dibuat image ini adalah superuser, sehingga user yang
+  # sama dipakai untuk dua hal: koneksi platform DB, dan provisioning database
+  # tenant baru (butuh privilege CREATE DATABASE). Karena itu di .env
+  # HRIS_DATABASE_TENANT_SUPER_USER diisi nilai yang sama.
+  #
+  # Catatan: docker/init-postgres.sql milik setup dev sengaja TIDAK dipakai di
+  # sini — script itu membuat role hris_tenant_admin dengan password hardcoded.
+  postgres:
+    image: postgres:16-alpine
+    container_name: hris-postgres
+    restart: unless-stopped
+    networks:
+      - hris-network
+    environment:
+      POSTGRES_DB: ${HRIS_DATABASE_PLATFORM_DB:-hris_platform}
+      POSTGRES_USER: ${HRIS_DATABASE_PLATFORM_USER:?wajib diisi di .env}
+      POSTGRES_PASSWORD: ${HRIS_DATABASE_PLATFORM_PASSWORD:?wajib diisi di .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===================================================================
+  # Redis — cache L2 + Pub/Sub invalidasi antar instance
+  # ===================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: hris-redis
+    restart: unless-stopped
+    networks:
+      - hris-network
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===================================================================
+  # Go API Server
+  # ===================================================================
+  api:
+    image: ${IMAGE_PREFIX}/hris-api:${IMAGE_TAG:-latest}
+    container_name: hris-api
+    restart: unless-stopped
+    networks:
+      - hris-network
+    # Hanya di-bind ke loopback: trafik publik masuk lewat nginx di
+    # tenant-web / admin-web. Port ini untuk debugging dari dalam server
+    # (mis. curl 127.0.0.1:8080/healthz) dan dipakai workflow deploy.
+    ports:
+      - "127.0.0.1:8080:8080"
+    env_file:
+      - .env
+    environment:
+      HRIS_SERVER_MODE: "release"
+      HRIS_LOGGER_LEVEL: "info"
+      HRIS_LOGGER_FORMAT: "json"
+      HRIS_REDIS_HOST: "redis"
+      HRIS_REDIS_PORT: "6379"
+      # LibreOffice sudah ter-bundle di image; path eksplisit lebih aman
+      # daripada auto-detect di dalam container.
+      HRIS_STORAGE_PDF_ENGINE: "libreoffice"
+      HRIS_STORAGE_LIBREOFFICE_PATH: "/usr/bin/soffice"
+    volumes:
+      # Template .docx, previews/, generated_documents/ — harus persist.
+      - uploads_data:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ===================================================================
+  # Frontend — app tenant
+  # ===================================================================
+  tenant-web:
+    image: ${IMAGE_PREFIX}/hris-tenant-web:${IMAGE_TAG:-latest}
+    container_name: hris-tenant-web
+    restart: unless-stopped
+    networks:
+      - hris-network
+    ports:
+      - "${TENANT_WEB_PORT:-8090}:80"
+    depends_on:
+      - api
+
+  # ===================================================================
+  # Frontend — app platform-admin
+  # ===================================================================
+  admin-web:
+    image: ${IMAGE_PREFIX}/hris-admin-web:${IMAGE_TAG:-latest}
+    container_name: hris-admin-web
+    restart: unless-stopped
+    networks:
+      - hris-network
+    ports:
+      - "${ADMIN_WEB_PORT:-8091}:80"
+    depends_on:
+      - api
+
+# ===================================================================
+# Kenapa tidak ada PgBouncer di sini
+# ===================================================================
+# docker-compose.yml (dev) punya service pgbouncer, dan config.yaml menyebut
+# PgBouncer direkomendasikan untuk produksi. Tapi konfigurasi dev itu tidak
+# bisa dipindah apa adanya:
+#
+#   1. edoburu/pgbouncer di compose dev diarahkan ke SATU database lewat env
+#      DB_NAME=hris_platform. Sementara koneksi tenant memakai nama database
+#      yang berbeda-beda per company (config.go:284 TenantDSN, dbname dinamis),
+#      jadi database tenant tidak akan terjangkau lewat pgbouncer tersebut.
+#   2. Provisioning tenant menjalankan CREATE DATABASE (manager.go:255).
+#      PostgreSQL melarang perintah itu di dalam transaction block, sedangkan
+#      PgBouncer transaction pooling membungkusnya — provisioning akan gagal.
+#
+# Memasang PgBouncer dengan benar di sini berarti menulis pgbouncer.ini custom
+# berisi wildcard `* = host=postgres port=5432`, DAN tetap mengarahkan
+# HRIS_DATABASE_TENANT_HOST langsung ke postgres untuk jalur provisioning.
+# Itu optimasi yang baru terbayar setelah jumlah tenant banyak (pool tenant =
+# 10 koneksi x N tenant), jadi sengaja ditunda daripada dipasang setengah jalan.

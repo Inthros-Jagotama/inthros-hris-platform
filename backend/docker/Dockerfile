@@ -61,11 +61,16 @@ ENV HOME=/home/hris
 
 WORKDIR /app
 
-# Copy binary and config from builder
+# Copy binary and config from builder.
+#
+# Migrasi TIDAK disalin: sejak direktori backend/migrations/ dihapus, seluruh
+# file .sql ditanam ke dalam binary lewat //go:embed di
+# internal/pkg/migrator/migrations/. Menyalinnya terpisah justru membuat versi
+# migrasi di disk dan versi yang benar-benar dijalankan binary bisa berbeda
+# tanpa ada yang memberi tahu.
 COPY --from=builder /app/bin/server .
 COPY --from=builder /app/bin/installer .
 COPY --from=builder /app/config ./config
-COPY --from=builder /app/migrations ./migrations
 
 # Direktori upload (template .docx, previews/, generated_documents/) harus
 # writable oleh user non-root

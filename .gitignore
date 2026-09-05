@@ -64,3 +64,6 @@ backend/uploads/
 
 # Superpowers subagent-driven-development scratch workspace
 .superpowers/
+
+# Claude Code project instructions (local-only, not shared via git)
+CLAUDE.md
